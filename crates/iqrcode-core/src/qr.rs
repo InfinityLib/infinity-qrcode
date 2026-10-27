@@ -13,9 +13,13 @@ use crate::tables;
 /// Error correction level of a QR Code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CorrectionLevel {
+    /// Low error correction, about 7% recovery capacity.
     Low,
+    /// Medium error correction, about 15% recovery capacity.
     Medium,
+    /// Quartile error correction, about 25% recovery capacity.
     Quartile,
+    /// High error correction, about 30% recovery capacity.
     High,
 }
 
@@ -46,9 +50,13 @@ impl fmt::Display for CorrectionLevel {
 /// Data encoding mode of a QR Code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
+    /// Digits only.
     Numeric,
+    /// Digits, uppercase letters and the QR punctuation set.
     Alphanumeric,
+    /// Arbitrary bytes, typically UTF-8 text.
     Byte,
+    /// Shift-JIS double-byte characters.
     Kanji,
 }
 
@@ -106,6 +114,10 @@ impl QrCode {
     ///
     /// The input is automatically split into Numeric, Alphanumeric and Byte
     /// segments when that reduces the encoded size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::DataTooLong`] if the data does not fit in version 40.
     pub fn encode(data: &str, level: CorrectionLevel) -> Result<Self, QrError> {
         let (segments, version) = Self::plan(data, level)?;
         Self::build_from_segments(&segments, version, level, None)
@@ -115,6 +127,11 @@ impl QrCode {
     ///
     /// The input is automatically split into segments when that reduces the
     /// encoded size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::InvalidVersion`] for a version outside `1..=40`, or
+    /// [`QrError::DataTooLong`] if the data does not fit.
     pub fn encode_version(
         data: &str,
         version: u8,
@@ -167,6 +184,11 @@ impl QrCode {
     ///
     /// Kanji requires raw Shift-JIS bytes; use [`QrCode::encode_kanji_shift_jis`]
     /// instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::KanjiRequiresShiftJis`] for Kanji, or a validation
+    /// error if the data does not fit the selected mode.
     pub fn encode_with_mode(
         data: &str,
         mode: Mode,
@@ -183,6 +205,10 @@ impl QrCode {
     /// Encodes UTF-8 text with an ECI 26 designator followed by a Byte segment.
     ///
     /// This tells decoders explicitly that the byte payload is UTF-8.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::DataTooLong`] if the data does not fit in version 40.
     pub fn encode_utf8(data: &str, level: CorrectionLevel) -> Result<Self, QrError> {
         let segments = [
             Segment::Eci(26),
@@ -196,6 +222,10 @@ impl QrCode {
     }
 
     /// Encodes UTF-8 text with an ECI 26 designator in a specific version.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::InvalidVersion`] or [`QrError::DataTooLong`].
     pub fn encode_utf8_version(
         data: &str,
         version: u8,
@@ -216,6 +246,11 @@ impl QrCode {
     ///
     /// `data` must contain complete two-byte Shift-JIS characters in the ranges
     /// `0x8140..=0x9FFC` or `0xE040..=0xEBBF`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::InvalidKanjiData`] for invalid input, or
+    /// [`QrError::DataTooLong`] if it does not fit in version 40.
     pub fn encode_kanji_shift_jis(data: &[u8], level: CorrectionLevel) -> Result<Self, QrError> {
         let segments = [Segment::Data {
             mode: Mode::Kanji,
@@ -226,6 +261,11 @@ impl QrCode {
     }
 
     /// Encodes raw Shift-JIS bytes in QR Kanji mode in a specific version.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::InvalidVersion`], [`QrError::InvalidKanjiData`], or
+    /// [`QrError::DataTooLong`].
     pub fn encode_kanji_shift_jis_version(
         data: &[u8],
         version: u8,
@@ -345,33 +385,43 @@ impl QrCode {
     /// Returns a copy of the module matrix, without any quiet zone.
     ///
     /// `1` represents a dark module and `0` a light module.
+    #[must_use]
     pub fn to_matrix(&self) -> Vec<Vec<u8>> {
         self.modules.clone()
     }
 
     /// Returns the module matrix as a borrowed slice.
+    #[must_use]
     pub fn modules(&self) -> &[Vec<u8>] {
         &self.modules
     }
 
     /// Side length of the module matrix.
+    #[must_use]
     pub fn size(&self) -> usize {
         self.modules.len()
     }
 
+    /// Returns the QR Code version, from 1 to 40.
+    #[must_use]
     pub fn version(&self) -> u8 {
         self.version
     }
 
+    /// Returns the error correction level.
+    #[must_use]
     pub fn correction_level(&self) -> CorrectionLevel {
         self.correction_level
     }
 
+    /// Returns the selected mask number, from 0 to 7.
+    #[must_use]
     pub fn mask(&self) -> u8 {
         self.mask
     }
 
     /// Renders the QR Code as text, with a four-module quiet zone.
+    #[must_use]
     pub fn to_ascii(&self) -> String {
         self.to_ascii_with_quiet_zone(4)
     }

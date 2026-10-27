@@ -14,23 +14,36 @@ use crate::qr::{CorrectionLevel, Mode, QrCode};
 use crate::tables;
 
 /// Stage of the QR Code construction shown by a frame.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
+    /// The matrix before any pattern is drawn.
     Empty,
+    /// Finder patterns and their separators.
     Finders,
+    /// Timing patterns.
     Timing,
+    /// Alignment patterns for versions 2 and above.
     Alignment,
+    /// Version information for versions 7 and above.
     VersionInfo,
+    /// Reserved format information and dark module.
     FormatReserved,
+    /// Data bits being placed in zigzag order.
     DataPlacement,
+    /// One of the eight mask candidates and its penalty score.
     MaskCandidate,
+    /// The selected mask applied to data modules.
     MaskChosen,
+    /// Format information written into the matrix.
     FormatInfo,
+    /// Completed matrix.
     Final,
 }
 
 impl Phase {
     /// Stable machine-readable key, suitable for translations.
+    #[must_use]
     pub const fn key(self) -> &'static str {
         match self {
             Self::Empty => "empty",
@@ -51,41 +64,62 @@ impl Phase {
 /// One visual step of the construction.
 #[derive(Debug, Clone)]
 pub struct Frame {
+    /// Construction phase represented by this frame.
     pub phase: Phase,
+    /// Matrix at this point in the construction.
     pub modules: Vec<Vec<u8>>,
+    /// Modules to highlight, as `(x, y)` coordinates.
     pub highlight: Vec<(usize, usize)>,
+    /// Index of the data bit placed by this frame, when applicable.
     pub bit_index: Option<usize>,
+    /// Mask number associated with this frame, when applicable.
     pub mask: Option<u8>,
+    /// Penalty score associated with this frame, when applicable.
     pub penalty: Option<u32>,
 }
 
 /// Summary of one encoded segment.
 #[derive(Debug, Clone)]
 pub struct SegmentSummary {
+    /// Encoding mode of the segment.
     pub mode: Mode,
+    /// Number of characters or bytes in the segment.
     pub characters: usize,
+    /// Number of bits used by the segment.
     pub bits: usize,
 }
 
 /// Summary of the encoded QR Code.
 #[derive(Debug, Clone)]
 pub struct TraceSummary {
+    /// QR Code version.
     pub version: u8,
+    /// Error correction level.
     pub level: CorrectionLevel,
+    /// Selected mask number.
     pub mask: u8,
+    /// Matrix side length.
     pub size: usize,
+    /// Number of modules available for data and ECC codewords.
     pub data_modules: usize,
+    /// Encoded segments.
     pub segments: Vec<SegmentSummary>,
+    /// Number of data codewords.
     pub data_codewords: usize,
+    /// Number of ECC codewords per block.
     pub ecc_per_block: usize,
+    /// Number of ECC blocks.
     pub blocks: usize,
+    /// Total number of codewords.
     pub total_codewords: usize,
 }
 
 /// A complete trace: summary plus every visual frame.
 #[derive(Debug, Clone)]
 pub struct Trace {
+    /// Metadata for the encoded QR Code.
     pub summary: TraceSummary,
+    /// Construction frames in playback order.
     pub frames: Vec<Frame>,
 }
 
@@ -115,6 +149,11 @@ impl Default for TraceOptions {
 }
 
 /// Builds a QR Code and records every construction step.
+///
+/// # Errors
+///
+/// Returns [`QrError::InvalidVersion`] for a version outside `1..=40`, or
+/// [`QrError::DataTooLong`] if the data does not fit.
 pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Result<Trace, QrError> {
     let (segments, version) = match options.version {
         Some(version) => (QrCode::plan_version(data, version)?, version),

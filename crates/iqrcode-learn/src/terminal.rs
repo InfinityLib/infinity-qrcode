@@ -8,8 +8,11 @@ use iqrcode_core::trace::{Frame, Trace};
 /// Options for the terminal animation.
 #[derive(Debug, Clone)]
 pub struct PlayOptions {
+    /// Frames per second.
     pub fps: u64,
+    /// Quiet zone width in modules.
     pub quiet_zone: usize,
+    /// Whether ANSI colors may be used.
     pub use_color: bool,
 }
 
