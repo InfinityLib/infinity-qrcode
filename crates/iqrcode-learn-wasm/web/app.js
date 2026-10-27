@@ -1,17 +1,21 @@
 import init, { LearnTrace } from "./pkg/iqrcode_learn_wasm.js";
+import { en } from "./i18n/en.js";
+import { fr } from "./i18n/fr.js";
+
+const dictionaries = { fr, en };
+const storageKey = "iqrcode-learn-language";
 
 const ui = {
   data: document.getElementById("data"),
   level: document.getElementById("level"),
   version: document.getElementById("version"),
+  lang: document.getElementById("lang"),
   regenerate: document.getElementById("regenerate"),
   canvas: document.getElementById("canvas"),
   meta: document.getElementById("meta"),
   title: document.getElementById("title"),
   description: document.getElementById("description"),
   mask: document.getElementById("mask"),
-  lessonTitle: document.getElementById("lesson-title"),
-  lessonText: document.getElementById("lesson-text"),
   lessonFormula: document.getElementById("lesson-formula"),
   prev: document.getElementById("prev"),
   play: document.getElementById("play"),
@@ -26,9 +30,17 @@ let trace = null;
 let frameIndex = 0;
 let playing = false;
 let timer = null;
+let language =
+  localStorage.getItem(storageKey) ??
+  (navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en");
+
+function t() {
+  return dictionaries[language] ?? dictionaries.en;
+}
 
 async function boot() {
   await init();
+  applyTranslations();
   bindControls();
   regenerate();
 }
@@ -40,6 +52,7 @@ function bindControls() {
   });
   ui.level.addEventListener("change", regenerate);
   ui.version.addEventListener("change", regenerate);
+  ui.lang.addEventListener("change", changeLanguage);
   ui.prev.addEventListener("click", () => step(-1));
   ui.next.addEventListener("click", () => step(1));
   ui.play.addEventListener("click", () => (playing ? pause() : play()));
@@ -56,6 +69,37 @@ function bindControls() {
       playing ? pause() : play();
     }
   });
+}
+
+function applyTranslations() {
+  const dictionary = t();
+
+  document.documentElement.lang = language;
+  ui.lang.value = language;
+  ui.version.placeholder = dictionary.ui.auto;
+  ui.prev.title = dictionary.ui.previous;
+  ui.next.title = dictionary.ui.next;
+  ui.play.textContent = playing ? dictionary.ui.pause : dictionary.ui.play;
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    const key = element.dataset.i18n;
+    const value = dictionary.ui[key];
+
+    if (typeof value === "string") {
+      element.textContent = value;
+    }
+  });
+}
+
+function changeLanguage() {
+  language = ui.lang.value;
+  localStorage.setItem(storageKey, language);
+  applyTranslations();
+  renderPipeline();
+
+  if (trace) {
+    render();
+  }
 }
 
 function regenerate() {
@@ -85,24 +129,19 @@ function regenerate() {
 function renderPipeline() {
   ui.pipeline.innerHTML = "";
 
-  if (!trace) return;
-
-  const count = trace.pipeline_lesson_count();
-
-  for (let index = 0; index < count; index += 1) {
+  for (const lesson of t().pipeline) {
     const item = document.createElement("li");
     const title = document.createElement("strong");
-    title.textContent = trace.pipeline_lesson_title(index) ?? `Étape ${index + 1}`;
+    title.textContent = lesson.title;
     item.appendChild(title);
 
     const explanation = document.createElement("p");
-    explanation.textContent = trace.pipeline_lesson_explanation(index) ?? "";
+    explanation.textContent = lesson.explanation;
     item.appendChild(explanation);
 
-    const formula = trace.pipeline_lesson_formula(index);
-    if (formula) {
+    if (lesson.formula) {
       const pre = document.createElement("pre");
-      pre.textContent = formula;
+      pre.textContent = lesson.formula;
       item.appendChild(pre);
     }
 
@@ -161,29 +200,30 @@ function render() {
     }
   }
 
-  ui.meta.textContent =
-    `Version ${trace.version()} · ${trace.level()} · ${size}×${size} · ` +
-    `${trace.data_codewords()} data · ${trace.ecc_per_block()} ECC/bloc · ` +
-    `${trace.blocks()} bloc(s) · ${trace.segments()}`;
+  const dictionary = t();
+  const phase = frame.phase();
+  const phaseText = dictionary.phases[phase] ?? dictionary.phases.unknown;
+  const title = resolve(phaseText.title, frame, trace);
+  const description = resolve(phaseText.description, frame, trace);
+  const formula = resolve(phaseText.formula, frame, trace);
 
-  ui.title.textContent = `${frame.title()} — ${frameIndex + 1}/${total}`;
-  ui.description.textContent = frame.description();
-  ui.lessonTitle.textContent = frame.lesson_title();
-  ui.lessonText.textContent = frame.lesson_explanation();
-  ui.lessonFormula.textContent = frame.lesson_formula() ?? "";
-
-  if (frame.mask() !== undefined) {
-    const penalty = frame.penalty();
-    ui.mask.textContent =
-      `Masque ${frame.mask()}` + (penalty !== undefined ? ` · pénalité ${penalty}` : "");
-  } else {
-    ui.mask.textContent = "";
-  }
-
+  ui.meta.textContent = dictionary.ui.meta(trace);
+  ui.title.textContent = dictionary.ui.frameTitle(title, frameIndex, total);
+  ui.description.textContent = description;
+  ui.lessonFormula.textContent = formula;
+  ui.mask.textContent = dictionary.ui.mask(frame);
   ui.progress.max = Math.max(1, total - 1);
   ui.progress.value = frameIndex;
 
   frame.free();
+}
+
+function resolve(value, ...args) {
+  if (typeof value === "function") {
+    return value(...args);
+  }
+
+  return value ?? "";
 }
 
 function play() {
@@ -195,14 +235,14 @@ function play() {
   }
 
   playing = true;
-  ui.play.textContent = "Pause";
+  ui.play.textContent = t().ui.pause;
   schedule();
 }
 
 function pause() {
   playing = false;
   clearTimeout(timer);
-  ui.play.textContent = "Play";
+  ui.play.textContent = t().ui.play;
 }
 
 function schedule() {
@@ -230,7 +270,7 @@ function step(delta) {
 }
 
 function showError(error) {
-  ui.error.textContent = String(error);
+  ui.error.textContent = t().ui.errorPrefix + String(error);
 }
 
 function clearError() {

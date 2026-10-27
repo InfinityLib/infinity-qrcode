@@ -9,18 +9,20 @@
   <body>
     <main>
       <header>
-        <h1>iqrcode-learn</h1>
-        <p>Construction pas à pas d'un QR Code, avec les explications de chaque étape.</p>
+        <h1 data-i18n="title">iqrcode-learn</h1>
+        <p data-i18n="subtitle">
+          Construction pas à pas d'un QR Code, avec les explications de chaque étape.
+        </p>
       </header>
 
       <section class="controls">
         <label>
-          Données
+          <span data-i18n="data">Données</span>
           <input id="data" type="text" value="HELLO WORLD" />
         </label>
 
         <label>
-          Niveau
+          <span data-i18n="level">Niveau</span>
           <select id="level">
             <option value="low">Low</option>
             <option value="medium" selected>Medium</option>
@@ -30,11 +32,19 @@
         </label>
 
         <label>
-          Version
+          <span data-i18n="version">Version</span>
           <input id="version" type="number" min="1" max="40" placeholder="auto" />
         </label>
 
-        <button id="regenerate">Régénérer</button>
+        <label>
+          <span data-i18n="language">Langue</span>
+          <select id="lang">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+
+        <button id="regenerate" data-i18n="regenerate">Régénérer</button>
       </section>
 
       <section class="player">
@@ -49,8 +59,7 @@
           <div id="mask" class="mask"></div>
 
           <div class="lesson-box">
-            <h3 id="lesson-title"></h3>
-            <p id="lesson-text"></p>
+            <h3 id="lesson-title" data-i18n="formula">Formule</h3>
             <pre id="lesson-formula"></pre>
           </div>
         </aside>
@@ -61,14 +70,14 @@
         <button id="play">Play</button>
         <button id="next">▶</button>
         <label>
-          Vitesse
+          <span data-i18n="speed">Vitesse</span>
           <input id="speed" type="range" min="30" max="1000" value="220" />
         </label>
         <progress id="progress" value="0" max="1"></progress>
       </section>
 
       <details>
-        <summary>Le pipeline avant la matrice</summary>
+        <summary><span data-i18n="pipeline">Le pipeline avant la matrice</span></summary>
         <ul id="pipeline"></ul>
       </details>
 

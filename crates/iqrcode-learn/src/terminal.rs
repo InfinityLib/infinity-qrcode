@@ -3,9 +3,7 @@
 use std::io::{IsTerminal, Write};
 use std::time::Duration;
 
-use iqrcode_core::trace::{Frame, Phase, Trace};
-
-use crate::lesson;
+use iqrcode_core::trace::{Frame, Trace};
 
 /// Options for the terminal animation.
 #[derive(Debug, Clone)]
@@ -13,7 +11,6 @@ pub struct PlayOptions {
     pub fps: u64,
     pub quiet_zone: usize,
     pub use_color: bool,
-    pub show_lessons: bool,
 }
 
 impl Default for PlayOptions {
@@ -22,7 +19,6 @@ impl Default for PlayOptions {
             fps: 20,
             quiet_zone: 4,
             use_color: true,
-            show_lessons: true,
         }
     }
 }
@@ -33,11 +29,8 @@ pub fn play(trace: &Trace, options: &PlayOptions) {
     let delay = Duration::from_millis(1000 / options.fps.max(1));
     let total = trace.frames.len();
     let use_color = options.use_color && std::io::stdout().is_terminal();
-    let mut last_phase: Option<Phase> = None;
 
     for (index, frame) in trace.frames.iter().enumerate() {
-        let show_lesson = options.show_lessons && last_phase != Some(frame.phase);
-
         render_frame(
             trace,
             frame,
@@ -45,10 +38,7 @@ pub fn play(trace: &Trace, options: &PlayOptions) {
             total,
             options.quiet_zone,
             use_color,
-            show_lesson,
         );
-
-        last_phase = Some(frame.phase);
 
         if index + 1 < total {
             std::thread::sleep(delay);
@@ -65,14 +55,13 @@ fn render_frame(
     total: usize,
     quiet_zone: usize,
     use_color: bool,
-    show_lesson: bool,
 ) {
     let summary = &trace.summary;
     print!("\x1b[2J\x1b[H");
 
-    println!("QR Code — construction pas à pas");
+    println!("QR Code — construction");
     println!(
-        "Version {} · niveau {} · {}×{} · {} data codewords · {} ECC/bloc · {} bloc(s)",
+        "version {} · level {} · {}×{} · {} data codewords · {} ECC/block · {} block(s)",
         summary.version,
         summary.level,
         summary.size,
@@ -88,30 +77,26 @@ fn render_frame(
         .map(|segment| format!("{:?}({})", segment.mode, segment.characters))
         .collect::<Vec<_>>()
         .join(" + ");
-    println!("Segments : {segments}");
+    println!("segments: {segments}");
     println!();
-    println!("[{index}/{total}] {}", frame.title);
-    println!("{}", frame.description);
+    println!("[{index}/{total}] phase: {}", frame.phase.key());
 
-    if let Some(mask) = frame.mask {
-        print!("Masque {mask}");
+    if let Some(bit_index) = frame.bit_index {
+        println!("bit: {} / {}", bit_index + 1, summary.data_modules);
 
-        if let Some(penalty) = frame.penalty {
-            print!(" · pénalité {penalty}");
+        if let Some(&(x, y)) = frame.highlight.first() {
+            println!("module: ({x}, {y})");
         }
-
-        println!();
     }
 
-    if show_lesson {
-        let lesson = lesson::for_phase(frame.phase);
-        println!();
-        println!("— {} —", lesson.title);
-        println!("{}", lesson.explanation);
+    if let Some(mask) = frame.mask {
+        print!("mask: {mask}");
 
-        if let Some(formula) = lesson.formula {
-            println!("Formule : {formula}");
+        if let Some(penalty) = frame.penalty {
+            print!(" · penalty: {penalty}");
         }
+
+        println!();
     }
 
     println!();

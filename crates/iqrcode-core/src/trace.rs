@@ -1,7 +1,9 @@
-//! Step-by-step construction trace, used by the terminal animation.
+//! Step-by-step construction trace.
+//!
+//! The trace contains only structured data: phase, matrix, highlighted
+//! modules, bit index, mask and penalty. Text and translations belong to the
+//! presentation layer.
 
-use alloc::format;
-use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -27,12 +29,29 @@ pub enum Phase {
     Final,
 }
 
+impl Phase {
+    /// Stable machine-readable key, suitable for translations.
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Empty => "empty",
+            Self::Finders => "finders",
+            Self::Timing => "timing",
+            Self::Alignment => "alignment",
+            Self::VersionInfo => "version_info",
+            Self::FormatReserved => "format_reserved",
+            Self::DataPlacement => "data_placement",
+            Self::MaskCandidate => "mask_candidate",
+            Self::MaskChosen => "mask_chosen",
+            Self::FormatInfo => "format_info",
+            Self::Final => "final",
+        }
+    }
+}
+
 /// One visual step of the construction.
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub phase: Phase,
-    pub title: &'static str,
-    pub description: String,
     pub modules: Vec<Vec<u8>>,
     pub highlight: Vec<(usize, usize)>,
     pub bit_index: Option<usize>,
@@ -40,7 +59,7 @@ pub struct Frame {
     pub penalty: Option<u32>,
 }
 
-/// Summary of the data that produced the traced QR Code.
+/// Summary of one encoded segment.
 #[derive(Debug, Clone)]
 pub struct SegmentSummary {
     pub mode: Mode,
@@ -55,6 +74,7 @@ pub struct TraceSummary {
     pub level: CorrectionLevel,
     pub mask: u8,
     pub size: usize,
+    pub data_modules: usize,
     pub segments: Vec<SegmentSummary>,
     pub data_codewords: usize,
     pub ecc_per_block: usize,
@@ -113,36 +133,17 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
     let mut frames = Vec::new();
     let mut matrix = Matrix::new(size);
 
-    let empty = matrix.snapshot();
-    frames.push(frame(
-        Phase::Empty,
-        "Matrice vide",
-        format!("Version {version} : matrice de {size}×{size} modules"),
-        empty,
-        Vec::new(),
-    ));
+    frames.push(frame(Phase::Empty, matrix.snapshot(), Vec::new()));
 
     let before = matrix.snapshot();
     matrix.draw_finders();
     let after = matrix.snapshot();
-    frames.push(frame(
-        Phase::Finders,
-        "Finder patterns",
-        "Les trois carrés de repérage et leurs séparateurs".to_string(),
-        after.clone(),
-        diff(&before, &after),
-    ));
+    frames.push(frame(Phase::Finders, after.clone(), diff(&before, &after)));
 
     let before = matrix.snapshot();
     matrix.draw_timing_patterns();
     let after = matrix.snapshot();
-    frames.push(frame(
-        Phase::Timing,
-        "Timing patterns",
-        "Les lignes et colonnes 6 alternent noir et blanc".to_string(),
-        after.clone(),
-        diff(&before, &after),
-    ));
+    frames.push(frame(Phase::Timing, after.clone(), diff(&before, &after)));
 
     if version >= 2 {
         let before = matrix.snapshot();
@@ -150,8 +151,6 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
         let after = matrix.snapshot();
         frames.push(frame(
             Phase::Alignment,
-            "Alignment patterns",
-            "Les motifs 5×5 aident le scanner à corriger la perspective".to_string(),
             after.clone(),
             diff(&before, &after),
         ));
@@ -163,8 +162,6 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
         let after = matrix.snapshot();
         frames.push(frame(
             Phase::VersionInfo,
-            "Version information",
-            format!("18 bits BCH(18,6) pour la version {version}"),
             after.clone(),
             diff(&before, &after),
         ));
@@ -175,8 +172,6 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
     let after = matrix.snapshot();
     frames.push(frame(
         Phase::FormatReserved,
-        "Format information réservée",
-        "Les deux copies de la format information et le dark module".to_string(),
         after.clone(),
         diff(&before, &after),
     ));
@@ -186,18 +181,8 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
 
         if bit_index.is_multiple_of(stride) || is_last {
             frames.push(
-                frame(
-                    Phase::DataPlacement,
-                    "Placement des données",
-                    format!(
-                        "Bit {} / {} — module ({x}, {y})",
-                        bit_index + 1,
-                        total_data_modules
-                    ),
-                    matrix.snapshot(),
-                    vec![(x, y)],
-                )
-                .with_bit_index(bit_index),
+                frame(Phase::DataPlacement, matrix.snapshot(), vec![(x, y)])
+                    .with_bit_index(bit_index),
             );
         }
     });
@@ -207,15 +192,9 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
         matrix::choose_mask_with(&base, level, None, |candidate, mask, score| {
             if options.show_mask_candidates {
                 frames.push(
-                    frame(
-                        Phase::MaskCandidate,
-                        "Candidat de masque",
-                        format!("Masque {mask} — pénalité {score}"),
-                        candidate.snapshot(),
-                        Vec::new(),
-                    )
-                    .with_mask(mask)
-                    .with_penalty(score),
+                    frame(Phase::MaskCandidate, candidate.snapshot(), Vec::new())
+                        .with_mask(mask)
+                        .with_penalty(score),
                 );
             }
         })?;
@@ -223,22 +202,13 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
     let mut chosen_matrix = base.clone();
     chosen_matrix.apply_mask(chosen_mask);
     frames.push(
-        frame(
-            Phase::MaskChosen,
-            "Masque retenu",
-            format!("Le masque {chosen_mask} est appliqué aux modules de données"),
-            chosen_matrix.snapshot(),
-            Vec::new(),
-        )
-        .with_mask(chosen_mask),
+        frame(Phase::MaskChosen, chosen_matrix.snapshot(), Vec::new()).with_mask(chosen_mask),
     );
 
     chosen_matrix.draw_format_info(level, chosen_mask);
     frames.push(
         frame(
             Phase::FormatInfo,
-            "Format information",
-            format!("Niveau {level}, masque {chosen_mask}"),
             chosen_matrix.snapshot(),
             matrix::format_info_positions(size),
         )
@@ -247,16 +217,7 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
 
     debug_assert_eq!(chosen_matrix.snapshot(), chosen_modules);
 
-    frames.push(
-        frame(
-            Phase::Final,
-            "QR Code final",
-            format!("Version {version}, niveau {level}, masque {chosen_mask}"),
-            chosen_modules,
-            Vec::new(),
-        )
-        .with_mask(chosen_mask),
-    );
+    frames.push(frame(Phase::Final, chosen_modules, Vec::new()).with_mask(chosen_mask));
 
     let segments = segments
         .iter()
@@ -281,6 +242,7 @@ pub fn trace(data: &str, level: CorrectionLevel, options: TraceOptions) -> Resul
             level,
             mask: chosen_mask,
             size,
+            data_modules: total_data_modules,
             segments,
             data_codewords: encoded.data_codewords.len(),
             ecc_per_block: encoded.ecc_len,
@@ -308,17 +270,9 @@ impl Frame {
     }
 }
 
-fn frame(
-    phase: Phase,
-    title: &'static str,
-    description: String,
-    modules: Vec<Vec<u8>>,
-    highlight: Vec<(usize, usize)>,
-) -> Frame {
+fn frame(phase: Phase, modules: Vec<Vec<u8>>, highlight: Vec<(usize, usize)>) -> Frame {
     Frame {
         phase,
-        title,
-        description,
         modules,
         highlight,
         bit_index: None,
@@ -356,6 +310,10 @@ mod tests {
         let qr = QrCode::encode("HELLO WORLD", CorrectionLevel::Medium).unwrap();
 
         assert_eq!(trace.summary.version, qr.version());
+        assert_eq!(
+            trace.summary.data_modules,
+            tables::raw_data_modules(qr.version())
+        );
         assert_eq!(trace.frames.last().unwrap().modules, qr.to_matrix());
     }
 
@@ -429,5 +387,14 @@ mod tests {
             .count();
 
         assert!(data_frames <= 22);
+    }
+
+    #[test]
+    fn phase_keys_are_stable() {
+        assert_eq!(Phase::Empty.key(), "empty");
+        assert_eq!(Phase::DataPlacement.key(), "data_placement");
+        assert_eq!(Phase::MaskCandidate.key(), "mask_candidate");
+        assert_eq!(Phase::FormatInfo.key(), "format_info");
+        assert_eq!(Phase::Final.key(), "final");
     }
 }

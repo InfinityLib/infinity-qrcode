@@ -4,7 +4,6 @@ use js_sys::{Uint8Array, Uint32Array};
 use wasm_bindgen::prelude::*;
 
 use iqrcode_learn::CorrectionLevel;
-use iqrcode_learn::lesson::{self, Lesson, PIPELINE_LESSONS};
 use iqrcode_learn::trace::{self, Frame, Trace, TraceOptions};
 
 /// A complete construction trace exposed to JavaScript.
@@ -60,6 +59,10 @@ impl LearnTrace {
         self.inner.summary.size
     }
 
+    pub fn data_modules(&self) -> usize {
+        self.inner.summary.data_modules
+    }
+
     pub fn data_codewords(&self) -> usize {
         self.inner.summary.data_codewords
     }
@@ -93,31 +96,8 @@ impl LearnTrace {
             .get(index)
             .cloned()
             .ok_or_else(|| JsValue::from_str("frame index out of range"))?;
-        let lesson = lesson::for_phase(frame.phase);
 
-        Ok(LearnFrame { frame, lesson })
-    }
-
-    pub fn pipeline_lesson_count(&self) -> usize {
-        PIPELINE_LESSONS.len()
-    }
-
-    pub fn pipeline_lesson_title(&self, index: usize) -> Option<String> {
-        PIPELINE_LESSONS
-            .get(index)
-            .map(|lesson| lesson.title.to_string())
-    }
-
-    pub fn pipeline_lesson_explanation(&self, index: usize) -> Option<String> {
-        PIPELINE_LESSONS
-            .get(index)
-            .map(|lesson| lesson.explanation.to_string())
-    }
-
-    pub fn pipeline_lesson_formula(&self, index: usize) -> Option<String> {
-        PIPELINE_LESSONS
-            .get(index)
-            .and_then(|lesson| lesson.formula.map(str::to_string))
+        Ok(LearnFrame { frame })
     }
 }
 
@@ -125,21 +105,12 @@ impl LearnTrace {
 #[wasm_bindgen]
 pub struct LearnFrame {
     frame: Frame,
-    lesson: Lesson,
 }
 
 #[wasm_bindgen]
 impl LearnFrame {
     pub fn phase(&self) -> String {
-        format!("{:?}", self.frame.phase)
-    }
-
-    pub fn title(&self) -> String {
-        self.frame.title.to_string()
-    }
-
-    pub fn description(&self) -> String {
-        self.frame.description.clone()
+        self.frame.phase.key().to_string()
     }
 
     pub fn size(&self) -> usize {
@@ -180,18 +151,6 @@ impl LearnFrame {
 
     pub fn penalty(&self) -> Option<u32> {
         self.frame.penalty
-    }
-
-    pub fn lesson_title(&self) -> String {
-        self.lesson.title.to_string()
-    }
-
-    pub fn lesson_explanation(&self) -> String {
-        self.lesson.explanation.to_string()
-    }
-
-    pub fn lesson_formula(&self) -> Option<String> {
-        self.lesson.formula.map(str::to_string)
     }
 }
 

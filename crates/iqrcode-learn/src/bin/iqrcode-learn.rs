@@ -1,10 +1,9 @@
-use std::io::{IsTerminal, Write};
+use std::io::IsTerminal;
 use std::process;
 
-use iqrcode_learn::lesson::{self, Lesson, PIPELINE_LESSONS};
+use iqrcode_learn::CorrectionLevel;
 use iqrcode_learn::terminal::{self, PlayOptions};
 use iqrcode_learn::trace::{self, TraceOptions};
-use iqrcode_learn::{CorrectionLevel, Phase};
 
 struct Options {
     data: String,
@@ -16,8 +15,6 @@ struct Options {
     quiet_zone: usize,
     no_color: bool,
     show_mask_candidates: bool,
-    show_lessons: bool,
-    list_lessons: bool,
 }
 
 fn main() {
@@ -29,11 +26,6 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let options = parse_args()?;
-
-    if options.list_lessons {
-        print_lessons();
-        return Ok(());
-    }
 
     let trace_options = TraceOptions {
         version: options.version,
@@ -49,62 +41,10 @@ fn run() -> Result<(), String> {
         fps: options.fps,
         quiet_zone: options.quiet_zone,
         use_color: !options.no_color && std::io::stdout().is_terminal(),
-        show_lessons: options.show_lessons,
     };
 
     terminal::play(&trace, &play_options);
     Ok(())
-}
-
-fn print_lessons() {
-    use std::fmt::Write as _;
-
-    let mut output = String::new();
-
-    writeln!(output, "Pipeline de données\n").expect("writing to a String cannot fail");
-
-    for lesson in PIPELINE_LESSONS {
-        print_lesson(&mut output, &lesson);
-    }
-
-    writeln!(output, "Construction de la matrice\n").expect("writing to a String cannot fail");
-
-    for phase in [
-        Phase::Empty,
-        Phase::Finders,
-        Phase::Timing,
-        Phase::Alignment,
-        Phase::VersionInfo,
-        Phase::FormatReserved,
-        Phase::DataPlacement,
-        Phase::MaskCandidate,
-        Phase::MaskChosen,
-        Phase::FormatInfo,
-        Phase::Final,
-    ] {
-        print_lesson(&mut output, &lesson::for_phase(phase));
-    }
-
-    let mut stdout = std::io::stdout();
-
-    if let Err(error) = stdout.write_all(output.as_bytes())
-        && error.kind() != std::io::ErrorKind::BrokenPipe
-    {
-        eprintln!("Erreur: impossible d'écrire sur stdout: {error}");
-    }
-}
-
-fn print_lesson(output: &mut String, lesson: &Lesson) {
-    use std::fmt::Write as _;
-
-    writeln!(output, "— {}", lesson.title).expect("writing to a String cannot fail");
-    writeln!(output, "{}", lesson.explanation).expect("writing to a String cannot fail");
-
-    if let Some(formula) = lesson.formula {
-        writeln!(output, "Formule : {formula}").expect("writing to a String cannot fail");
-    }
-
-    output.push('\n');
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -117,8 +57,6 @@ fn parse_args() -> Result<Options, String> {
     let mut quiet_zone = 4;
     let mut no_color = false;
     let mut show_mask_candidates = true;
-    let mut show_lessons = true;
-    let mut list_lessons = false;
 
     let mut arguments = std::env::args().skip(1);
 
@@ -190,8 +128,6 @@ fn parse_args() -> Result<Options, String> {
             }
             "--no-color" => no_color = true,
             "--no-mask-candidates" => show_mask_candidates = false,
-            "--no-lessons" => show_lessons = false,
-            "--list-lessons" => list_lessons = true,
             "--animate" => {}
             _ if argument.starts_with('-') => {
                 return Err(format!("option inconnue: {argument}"));
@@ -215,8 +151,6 @@ fn parse_args() -> Result<Options, String> {
         quiet_zone,
         no_color,
         show_mask_candidates,
-        show_lessons,
-        list_lessons,
     })
 }
 
@@ -246,14 +180,14 @@ Options :
   --quiet-zone <n>                     Quiet zone en modules (défaut : 4)
   --no-color                           Désactive les couleurs ANSI
   --no-mask-candidates                 Ne montre pas les 8 masques candidats
-  --no-lessons                         N'affiche pas les explications pendant l'animation
-  --list-lessons                       Affiche toutes les leçons et quitte
   -h, --help                           Affiche cette aide
+
+Remarque : les explications et les formules sont dans l'UI web
+(`crates/iqrcode-learn-wasm/web`). Le terminal montre les phases et les valeurs.
 
 Exemples :
   iqrcode-learn "HELLO WORLD" --animate
   iqrcode-learn "HELLO WORLD" --animate --version 4 --fps 20
-  iqrcode-learn --list-lessons
 "#
     );
 }

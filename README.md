@@ -98,26 +98,25 @@ Options principales :
 ```bash
 cargo run -p iqrcode-learn -- "HELLO WORLD" --animate
 cargo run -p iqrcode-learn -- "HELLO WORLD" --animate --version 4 --fps 20
-cargo run -p iqrcode-learn -- "HELLO WORLD" --no-lessons --no-color
-cargo run -p iqrcode-learn -- --list-lessons
+cargo run -p iqrcode-learn -- "HELLO WORLD" --no-color
 ```
 
-L'animation montre :
+L'animation terminale montre les phases et les valeurs calculées :
 
-- la matrice vide,
-- les finder patterns et séparateurs,
-- les timing patterns,
-- les alignment patterns,
-- la version information,
-- la format information réservée,
-- le placement des données en zigzag,
-- les 8 masques candidats et leurs scores,
-- le masque retenu,
-- la format information finale,
-- le QR Code complet.
+- matrice vide,
+- finder patterns,
+- timing patterns,
+- alignment patterns,
+- version information,
+- format information réservée,
+- placement des données,
+- masques candidats et pénalités,
+- masque retenu,
+- format information finale,
+- QR Code complet.
 
-Chaque phase est accompagnée d'une explication et, quand c'est pertinent, de sa
-formule. La dernière frame correspond exactement à `to_matrix()`.
+Le terminal est volontairement technique et neutre. Les explications, formules
+et traductions sont dans l'UI web (`crates/iqrcode-learn-wasm/web`).
 
 Options :
 
@@ -127,8 +126,6 @@ Options :
 - `--quiet-zone <n>`
 - `--no-color`
 - `--no-mask-candidates`
-- `--no-lessons`
-- `--list-lessons`
 
 ## WASM
 
@@ -142,6 +139,16 @@ python3 -m http.server 8080
 ```
 
 Ouvrir <http://localhost:8080>.
+
+L'UI web gère elle-même les traductions :
+
+```text
+crates/iqrcode-learn-wasm/web/i18n/fr.js
+crates/iqrcode-learn-wasm/web/i18n/en.js
+```
+
+Un sélecteur de langue est disponible dans la page. Le WASM expose uniquement
+les données (phase, matrice, highlight, bit, masque, pénalité), pas les textes.
 
 Wrapper WASM minimal :
 

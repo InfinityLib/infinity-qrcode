@@ -1,10 +1,9 @@
-//! Educational layer for `iqrcode-core`.
+//! Terminal construction animation for `iqrcode-core`.
 //!
-//! It exposes the construction trace, written explanations and a terminal
-//! animation. The web version lives in `iqrcode-learn-wasm`.
+//! This crate is language-neutral: it exposes the trace and displays raw
+//! phases/values. Human-readable explanations live in the web UI.
 
-pub mod lesson;
 pub mod terminal;
 
 pub use iqrcode_core::trace::{self, Frame, Phase, Trace, TraceOptions};
-pub use iqrcode_core::{CorrectionLevel, Mode, QrCode, QrError};
+pub use iqrcode_core::{CorrectionLevel, QrCode, QrError};
