@@ -1,51 +1,53 @@
 # iqrcode
 
-Générateur de QR Code en Rust, avec un cœur `no_std`, une CLI, une version
-pédagogique et une version WebAssembly.
+**English** | [Français](README.fr.md)
+
+QR Code generator in Rust with a `no_std` core, a CLI, an educational terminal
+animation and a WebAssembly version.
 
 ## Architecture
 
 ```text
 crates/
-  iqrcode-core/       cœur QR : encodage, ECC, matrice, trace optionnelle
-  iqrcode/            façade std + CLI + PNG
-  iqrcode-learn/      animation terminale et explications
-  iqrcode-learn-wasm/ version WebAssembly de l'outil pédagogique + UI web
-  iqrcode-wasm/       wrapper WASM minimal pour générer un QR
+  iqrcode-core/       QR core: encoding, ECC, matrix, optional trace
+  iqrcode/            std facade + CLI + PNG
+  iqrcode-learn/      neutral terminal construction animation
+  iqrcode-learn-wasm/ WebAssembly educational API + web UI with FR/EN i18n
+  iqrcode-wasm/       minimal WASM wrapper for QR generation
 ```
 
-Le cœur ne dépend pas de `std` par défaut : il utilise `alloc`.
+The core does not require `std` by default: it uses `alloc`.
 
-## Version minimale
+## Minimal build
 
 ```bash
 cargo build -p iqrcode-core --no-default-features
 ```
 
-Le cœur expose :
+The core provides:
 
-- l'encodage Numeric / Alphanumeric / Byte / Kanji,
-- la segmentation multi-modes,
-- Reed-Solomon et l'entrelacement,
-- les versions 1 à 40,
-- les sorties ASCII, PBM et SVG.
+- Numeric, Alphanumeric, Byte and Kanji encoding,
+- mixed-mode segmentation,
+- Reed-Solomon and block interleaving,
+- versions 1 to 40,
+- ASCII, PBM and SVG output.
 
-Sans feature, il n'y a ni CLI, ni PNG, ni animation.
+Without features there is no CLI, no PNG and no animation.
 
-## Version complète
+## Full build
 
 ```bash
 cargo build -p iqrcode --features full
 ```
 
-Features :
+Features:
 
-- `iqrcode-core` : `std`, `trace`, `png` (PNG implique `std`).
-- `iqrcode` : `cli` (activée par défaut), `png`, `full`.
+- `iqrcode-core`: `std`, `trace`, `png` (PNG implies `std`).
+- `iqrcode`: `cli` (enabled by default), `png`, `full`.
 
-Le build par défaut de `iqrcode` active `cli`.
+The default `iqrcode` build enables `cli`.
 
-## Utilisation
+## Usage
 
 ```rust
 use iqrcode::{CorrectionLevel, QrCode};
@@ -62,7 +64,7 @@ for row in &matrix {
 }
 ```
 
-Autres sorties :
+Other outputs:
 
 ```rust
 let pbm = qr.to_pbm(4);
@@ -83,17 +85,19 @@ cargo run -p iqrcode --features png -- "HELLO WORLD" --format png -o hello.png
 cargo run -p iqrcode -- "Héllo" --utf8-eci
 ```
 
-Options principales :
+Main options:
 
 - `--level <low|medium|quartile|high>`
 - `--version <1..40>`
 - `--format <ascii|bits|pbm|svg|png>`
 - `--scale <n>`
 - `--quiet-zone <n>`
-- `-o, --output <chemin>`
+- `-o, --output <path>`
 - `--bits`, `--info`, `--utf8-eci`
 
-## Animation pédagogique
+The CLI messages and help text are in English.
+
+## Educational animation
 
 ```bash
 cargo run -p iqrcode-learn -- "HELLO WORLD" --animate
@@ -101,26 +105,27 @@ cargo run -p iqrcode-learn -- "HELLO WORLD" --animate --version 4 --fps 20
 cargo run -p iqrcode-learn -- "HELLO WORLD" --no-color
 ```
 
-L'animation terminale montre les phases et les valeurs calculées :
+The terminal animation shows the phases and computed values:
 
-- matrice vide,
+- empty matrix,
 - finder patterns,
 - timing patterns,
 - alignment patterns,
 - version information,
-- format information réservée,
-- placement des données,
-- masques candidats et pénalités,
-- masque retenu,
-- format information finale,
-- QR Code complet.
+- reserved format information,
+- data placement,
+- mask candidates and penalties,
+- chosen mask,
+- final format information,
+- complete QR Code.
 
-Le terminal est volontairement technique et neutre. Les explications, formules
-et traductions sont dans l'UI web (`crates/iqrcode-learn-wasm/web`).
+The terminal is intentionally technical and language-neutral. Explanations,
+formulas and translations live in the web UI
+(`crates/iqrcode-learn-wasm/web`).
 
-Options :
+Options:
 
-- `--fps <n>` (défaut : 20)
+- `--fps <n>` (default: 20)
 - `--stride <n>` (0 = auto)
 - `--max-frames <n>`
 - `--quiet-zone <n>`
@@ -129,7 +134,7 @@ Options :
 
 ## WASM
 
-Version pédagogique complète avec UI web :
+Full educational version with a web UI:
 
 ```bash
 cd crates/iqrcode-learn-wasm
@@ -138,19 +143,19 @@ cd web
 python3 -m http.server 8080
 ```
 
-Ouvrir <http://localhost:8080>.
+Open <http://localhost:8080>.
 
-L'UI web gère elle-même les traductions :
+The web UI owns its translations:
 
 ```text
 crates/iqrcode-learn-wasm/web/i18n/fr.js
 crates/iqrcode-learn-wasm/web/i18n/en.js
 ```
 
-Un sélecteur de langue est disponible dans la page. Le WASM expose uniquement
-les données (phase, matrice, highlight, bit, masque, pénalité), pas les textes.
+A language selector is available on the page. The WASM layer exposes only data
+(phase, matrix, highlight, bit, mask, penalty), not text.
 
-Wrapper WASM minimal :
+Minimal WASM wrapper:
 
 ```bash
 wasm-pack build crates/iqrcode-wasm --target web
@@ -166,19 +171,18 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --check
 ```
 
-Les tests comparent les matrices à `qrcodegen` pour les versions 1 à 40, les
-8 masques et les 4 niveaux de correction, puis décodent les QR générés avec
-`rqrr`.
+Tests compare matrices against `qrcodegen` for versions 1 to 40, all 8 masks
+and all 4 correction levels, then decode generated QR Codes with `rqrr`.
 
 ## Serde
 
-Serde n'est pas utilisé pour l'instant. Il ne sera ajouté que si on veut
-exporter les frames en JSON, par exemple pour un autre lecteur web. Le WASM
-actuel expose directement les données via `wasm-bindgen`.
+Serde is not used for now. It would only be added if we need to export frames
+as JSON, for example for another web player. The current WASM layer exposes
+data directly through `wasm-bindgen`.
 
-## Prochaines étapes
+## Next steps
 
-- Conversion UTF-8 vers Shift-JIS pour le mode Kanji.
-- Peaufinage de l'UI web et export HTML/GIF.
-- Validation `no_std` sur une cible embarquée.
-- Optimisations et benchmarks.
+- UTF-8 to Shift-JIS conversion for Kanji mode.
+- Web UI polish and HTML/GIF export.
+- `no_std` validation on an embedded target.
+- Optimizations and benchmarks.
