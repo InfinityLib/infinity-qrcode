@@ -18,6 +18,7 @@ use crate::error::QrError;
 
 impl QrCode {
     /// Renders the QR Code as text with a custom quiet zone.
+    #[must_use]
     pub fn to_ascii_with_quiet_zone(&self, quiet_zone: usize) -> String {
         let width = self.size() + 2 * quiet_zone;
         let mut output = String::with_capacity((width * 2 + 1) * (width + 2 * quiet_zone));
@@ -57,6 +58,7 @@ impl QrCode {
     /// Renders the QR Code as a plain-text PBM (P1) image.
     ///
     /// `quiet_zone` is expressed in modules.
+    #[must_use]
     pub fn to_pbm(&self, quiet_zone: usize) -> String {
         let size = self.size();
         let width = size + 2 * quiet_zone;
@@ -94,6 +96,7 @@ impl QrCode {
     ///
     /// `module_size` is the size of one module in pixels, and `quiet_zone` is
     /// the width of the light border in modules.
+    #[must_use]
     pub fn to_svg(&self, module_size: usize, quiet_zone: usize) -> String {
         let module_size = module_size.max(1);
         let size = self.size();
@@ -137,6 +140,11 @@ impl QrCode {
     /// Renders the QR Code as an 8-bit greyscale PNG.
     ///
     /// This method is available with the `png` feature.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QrError::PngEncoding`] if the image dimensions overflow or the
+    /// PNG encoder fails.
     #[cfg(feature = "png")]
     pub fn to_png(&self, module_size: usize, quiet_zone: usize) -> Result<Vec<u8>, QrError> {
         let module_size = module_size.max(1);

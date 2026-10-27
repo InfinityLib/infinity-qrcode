@@ -1,5 +1,7 @@
 //! Minimal WebAssembly wrapper around `iqrcode-core`.
 
+#![warn(missing_docs)]
+
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
@@ -13,6 +15,11 @@ pub struct QrCodeWasm {
 
 #[wasm_bindgen]
 impl QrCodeWasm {
+    /// Creates a QR Code from text and a correction level (`L`, `M`, `Q` or `H`).
+    ///
+    /// # Errors
+    ///
+    /// Throws a JavaScript error if the level is invalid or the data does not fit.
     #[wasm_bindgen(constructor)]
     pub fn new(data: &str, level: &str) -> Result<QrCodeWasm, JsValue> {
         let level = parse_level(level)?;
@@ -22,14 +29,17 @@ impl QrCodeWasm {
         Ok(Self { inner })
     }
 
+    /// Returns the matrix side length.
     pub fn size(&self) -> usize {
         self.inner.size()
     }
 
+    /// Returns the QR Code version.
     pub fn version(&self) -> u8 {
         self.inner.version()
     }
 
+    /// Returns the selected mask number.
     pub fn mask(&self) -> u8 {
         self.inner.mask()
     }
@@ -46,6 +56,7 @@ impl QrCodeWasm {
         Uint8Array::from(&flat[..])
     }
 
+    /// Returns the QR Code as an SVG string.
     pub fn svg(&self, module_size: usize, quiet_zone: usize) -> String {
         self.inner.to_svg(module_size, quiet_zone)
     }

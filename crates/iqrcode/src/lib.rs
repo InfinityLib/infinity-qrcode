@@ -13,5 +13,6 @@
 //! ```
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 pub use iqrcode_core::{CorrectionLevel, Mode, QrCode, QrError, error, qr};

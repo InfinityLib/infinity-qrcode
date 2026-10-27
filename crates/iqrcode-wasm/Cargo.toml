@@ -1,12 +1,19 @@
 [package]
 name = "iqrcode-wasm"
-version = "0.1.0"
-edition = "2024"
+description = "Minimal WebAssembly wrapper for QR Code generation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 iqrcode-core = { path = "../iqrcode-core", features = ["std"] }
-js-sys = "0.3"
-wasm-bindgen = "0.2"
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
+
+[lints]
+workspace = true
