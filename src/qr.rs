@@ -88,12 +88,43 @@ pub(crate) const MAX_SUPPORTED_VERSION: u8 = 40;
 /// Version ranges that share the same character-count indicator width.
 const VERSION_GROUPS: [(u8, u8); 3] = [(1, 9), (10, 26), (27, 40)];
 
+/// Data codewords, ECC codewords and interleaved codewords for one QR Code.
+pub(crate) struct EncodedData {
+    pub(crate) data_codewords: Vec<u8>,
+    pub(crate) ecc_len: usize,
+    pub(crate) num_blocks: usize,
+    pub(crate) total_codewords: usize,
+    pub(crate) codewords: Vec<u8>,
+}
+
 impl QrCode {
     /// Encodes `data` in the smallest QR Code that can hold it.
     ///
     /// The input is automatically split into Numeric, Alphanumeric and Byte
     /// segments when that reduces the encoded size.
     pub fn encode(data: &str, level: CorrectionLevel) -> Result<Self, QrError> {
+        let (segments, version) = Self::plan(data, level)?;
+        Self::build_from_segments(&segments, version, level, None)
+    }
+
+    /// Encodes `data` in a specific version.
+    ///
+    /// The input is automatically split into segments when that reduces the
+    /// encoded size.
+    pub fn encode_version(
+        data: &str,
+        version: u8,
+        level: CorrectionLevel,
+    ) -> Result<Self, QrError> {
+        let segments = Self::plan_version(data, version)?;
+        Self::build_from_segments(&segments, version, level, None)
+    }
+
+    /// Chooses the smallest version and the matching segment layout for `data`.
+    pub(crate) fn plan(
+        data: &str,
+        level: CorrectionLevel,
+    ) -> Result<(Vec<Segment<'_>>, u8), QrError> {
         for (group_start, group_end) in VERSION_GROUPS {
             let segments = optimize::optimal_segments(data, group_start);
             let needed_bits = bits::segments_bits(&segments, group_start)?;
@@ -102,7 +133,7 @@ impl QrCode {
                 let capacity_bits = tables::data_codewords(version, level) * 8;
 
                 if needed_bits <= capacity_bits {
-                    return Self::build_from_segments(&segments, version, level, None);
+                    return Ok((segments, version));
                 }
             }
         }
@@ -119,21 +150,13 @@ impl QrCode {
         })
     }
 
-    /// Encodes `data` in a specific version.
-    ///
-    /// The input is automatically split into segments when that reduces the
-    /// encoded size.
-    pub fn encode_version(
-        data: &str,
-        version: u8,
-        level: CorrectionLevel,
-    ) -> Result<Self, QrError> {
+    /// Chooses the segment layout for an explicit version.
+    pub(crate) fn plan_version(data: &str, version: u8) -> Result<Vec<Segment<'_>>, QrError> {
         if version == 0 || version > MAX_SUPPORTED_VERSION {
             return Err(QrError::InvalidVersion(version));
         }
 
-        let segments = optimize::optimal_segments(data, version);
-        Self::build_from_segments(&segments, version, level, None)
+        Ok(optimize::optimal_segments(data, version))
     }
 
     /// Encodes `data` with an explicit single mode.
@@ -256,6 +279,33 @@ impl QrCode {
         Self::build_from_segments(&segments, version, level, forced_mask)
     }
 
+    pub(crate) fn encode_codewords(
+        segments: &[Segment<'_>],
+        version: u8,
+        level: CorrectionLevel,
+    ) -> Result<EncodedData, QrError> {
+        let capacity_bits = tables::data_codewords(version, level) * 8;
+        let bits = bits::encode_segments(segments, version, level)?;
+        let bits = bits::finish(bits, capacity_bits, version, level)?;
+        let data_codewords = bits.into_bytes();
+        debug_assert_eq!(data_codewords.len(), tables::data_codewords(version, level));
+
+        let ecc_len = tables::ecc_codewords(version, level);
+        let num_blocks = tables::num_blocks(version, level);
+        let total_codewords = tables::total_codewords(version);
+        let codewords =
+            reed_solomon::encode_blocks(&data_codewords, ecc_len, num_blocks, total_codewords);
+        debug_assert_eq!(codewords.len(), total_codewords);
+
+        Ok(EncodedData {
+            data_codewords,
+            ecc_len,
+            num_blocks,
+            total_codewords,
+            codewords,
+        })
+    }
+
     pub(crate) fn build_from_segments(
         segments: &[Segment<'_>],
         version: u8,
@@ -271,23 +321,12 @@ impl QrCode {
             return Err(QrError::InvalidMask(mask));
         }
 
-        let capacity_bits = tables::data_codewords(version, level) * 8;
-        let bits = bits::encode_segments(segments, version, level)?;
-        let bits = bits::finish(bits, capacity_bits, version, level)?;
-        let data_codewords = bits.into_bytes();
-        debug_assert_eq!(data_codewords.len(), tables::data_codewords(version, level));
-
-        let ecc_len = tables::ecc_codewords(version, level);
-        let num_blocks = tables::num_blocks(version, level);
-        let total_codewords = tables::total_codewords(version);
-        let codewords =
-            reed_solomon::encode_blocks(&data_codewords, ecc_len, num_blocks, total_codewords);
-        debug_assert_eq!(codewords.len(), total_codewords);
+        let encoded = Self::encode_codewords(segments, version, level)?;
 
         let size = tables::version_size(version);
         let mut base = Matrix::new(size);
         base.draw_function_patterns(version);
-        base.place_data(&codewords);
+        base.place_data(&encoded.codewords);
 
         let (modules, mask) = matrix::choose_mask(&base, level, forced_mask)?;
 

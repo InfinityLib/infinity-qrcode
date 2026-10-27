@@ -17,6 +17,7 @@ décodables par un lecteur standard.
 - Sélection automatique de la plus petite version qui contient les données.
 - Sortie sous forme de matrice `Vec<Vec<u8>>` avec des `0` et des `1`.
 - Sorties ASCII, PBM, SVG et PNG (feature `png`).
+- Animation terminale pas à pas de la construction.
 - Quiet zone configurable.
 
 ## Utilisation
@@ -88,6 +89,27 @@ Options principales :
 - `-o, --output <chemin>`
 - `--bits`, `--info`, `--utf8-eci`, `--help`
 
+## Animation terminale
+
+L’animation montre la vraie construction du QR Code, étape par étape :
+
+```bash
+cargo run -- "HELLO WORLD" --animate
+cargo run -- "HELLO WORLD" --animate --version 4 --fps 20
+cargo run -- "HELLO WORLD" --animate --no-color --no-mask-candidates
+```
+
+Options dédiées :
+
+- `--animate`
+- `--fps <n>` : images par seconde (défaut : 20)
+- `--stride <n>` : une frame de données tous les `n` modules
+- `--max-frames <n>` : limite le nombre de frames de données
+- `--no-color`
+- `--no-mask-candidates`
+
+La dernière frame est exactement la matrice renvoyée par `to_matrix()`.
+
 ## Tests
 
 ```bash
@@ -103,4 +125,5 @@ de correction, puis décodent les QR générés avec `rqrr`.
 ## Prochaines étapes
 
 - Conversion UTF-8 vers Shift-JIS pour le mode Kanji.
+- Export HTML ou GIF à partir de la même trace.
 - Optimisations et support `no_std`.

@@ -13,6 +13,9 @@
 //! Outputs are available as a `Vec<Vec<u8>>` matrix, ASCII, PBM and SVG, plus
 //! PNG when the `png` feature is enabled.
 //!
+//! The [`trace`] module can record every construction step, which is used by
+//! the terminal animation (`--animate`).
+//!
 //! ```
 //! use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};
 //!
@@ -35,6 +38,7 @@ mod tables;
 
 pub mod error;
 pub mod qr;
+pub mod trace;
 
 pub use error::QrError;
 pub use qr::{CorrectionLevel, Mode, QrCode};

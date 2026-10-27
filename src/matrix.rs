@@ -22,13 +22,18 @@ impl Matrix {
         }
     }
 
+    /// Draws the three finder patterns and their separators.
+    pub(crate) fn draw_finders(&mut self) {
+        self.draw_finder(0, 0);
+        self.draw_finder(self.size - 7, 0);
+        self.draw_finder(0, self.size - 7);
+    }
+
     /// Draws the fixed patterns shared by every mask candidate.
     pub(crate) fn draw_function_patterns(&mut self, version: u8) {
         debug_assert_eq!(self.size, 17 + 4 * version as usize);
 
-        self.draw_finder(0, 0);
-        self.draw_finder(self.size - 7, 0);
-        self.draw_finder(0, self.size - 7);
+        self.draw_finders();
         self.draw_timing_patterns();
         self.draw_alignment_patterns(version);
 
@@ -67,7 +72,7 @@ impl Matrix {
         }
     }
 
-    fn draw_timing_patterns(&mut self) {
+    pub(crate) fn draw_timing_patterns(&mut self) {
         for coordinate in 8..self.size - 8 {
             let value = u8::from(coordinate % 2 == 0);
             self.set_function(coordinate, 6, value);
@@ -77,7 +82,7 @@ impl Matrix {
 
     /// Draws every alignment pattern except the three that would overlap a
     /// finder pattern.
-    fn draw_alignment_patterns(&mut self, version: u8) {
+    pub(crate) fn draw_alignment_patterns(&mut self, version: u8) {
         let positions = alignment_positions(version);
         let count = positions.len();
 
@@ -111,7 +116,7 @@ impl Matrix {
     }
 
     /// Draws the two copies of the 18-bit version information.
-    fn draw_version_info(&mut self, version: u8) {
+    pub(crate) fn draw_version_info(&mut self, version: u8) {
         let bits = version_info_bits(version);
 
         for index in 0..18 {
@@ -125,7 +130,7 @@ impl Matrix {
     }
 
     /// Reserves both copies of the format information and the dark module.
-    fn reserve_format_info(&mut self) {
+    pub(crate) fn reserve_format_info(&mut self) {
         for i in 0..=5 {
             self.set_function(8, i, 0);
         }
@@ -147,7 +152,7 @@ impl Matrix {
         self.set_function(8, self.size - 8, 1);
     }
 
-    fn draw_format_info(&mut self, level: CorrectionLevel, mask: u8) {
+    pub(crate) fn draw_format_info(&mut self, level: CorrectionLevel, mask: u8) {
         let bits = format_info_bits(level, mask);
         let bit = |index: usize| ((bits >> index) & 1) as u8;
 
@@ -171,12 +176,26 @@ impl Matrix {
         self.set_function(8, self.size - 8, 1);
     }
 
+    pub(crate) fn snapshot(&self) -> Vec<Vec<u8>> {
+        self.modules.clone()
+    }
+
     /// Fills all non-function modules with the interleaved codewords.
     ///
     /// Bits are placed in two-module-wide columns, from right to left, in an
     /// alternating upward/downward zigzag. Column 6 (the vertical timing
     /// pattern) is skipped.
     pub(crate) fn place_data(&mut self, codewords: &[u8]) {
+        self.place_data_with(codewords, |_, _, _, _| {});
+    }
+
+    /// Same as [`Matrix::place_data`], but calls `on_module` after each module
+    /// is written. The callback receives the matrix, the module coordinates,
+    /// and the index of the bit that was just placed.
+    pub(crate) fn place_data_with<F>(&mut self, codewords: &[u8], mut on_module: F)
+    where
+        F: FnMut(&Matrix, usize, usize, usize),
+    {
         let total_bits = codewords.len() * 8;
         let mut bit_index = 0usize;
         let mut right = self.size as isize - 1;
@@ -204,6 +223,7 @@ impl Matrix {
                         };
 
                         self.modules[y][x] = bit;
+                        on_module(self, x, y, bit_index);
                         bit_index += 1;
                     }
                 }
@@ -221,7 +241,7 @@ impl Matrix {
         debug_assert_eq!(bit_index, self.size * self.size - function_modules);
     }
 
-    fn apply_mask(&mut self, mask: u8) {
+    pub(crate) fn apply_mask(&mut self, mask: u8) {
         for y in 0..self.size {
             for x in 0..self.size {
                 if !self.is_function(x, y) && mask_bit(mask, x, y) {
@@ -232,7 +252,7 @@ impl Matrix {
     }
 
     /// Standard QR mask penalty score (lower is better).
-    fn penalty(&self) -> u32 {
+    pub(crate) fn penalty(&self) -> u32 {
         let size = self.size;
         let mut score = 0u32;
 
@@ -414,6 +434,30 @@ pub(crate) fn version_info_bits(version: u8) -> u32 {
     (version << 12) | (remainder & 0xFFF)
 }
 
+/// Returns the coordinates of the two copies of the format information.
+pub(crate) fn format_info_positions(size: usize) -> Vec<(usize, usize)> {
+    let mut positions = Vec::with_capacity(30);
+
+    for y in 0..=5 {
+        positions.push((8, y));
+    }
+    positions.push((8, 7));
+    positions.push((8, 8));
+    positions.push((7, 8));
+    for i in 9..=14 {
+        positions.push((14 - i, 8));
+    }
+
+    for i in 0..=7 {
+        positions.push((size - 1 - i, 8));
+    }
+    for i in 8..=14 {
+        positions.push((8, size - 15 + i));
+    }
+
+    positions
+}
+
 /// Computes the 15-bit format information with BCH(15,5) error correction.
 ///
 /// The returned value is indexed least-significant bit first, matching the
@@ -440,6 +484,20 @@ pub(crate) fn choose_mask(
     level: CorrectionLevel,
     forced_mask: Option<u8>,
 ) -> Result<(Vec<Vec<u8>>, u8), QrError> {
+    choose_mask_with(base, level, forced_mask, |_, _, _| {})
+}
+
+/// Same as [`choose_mask`], but calls `on_candidate` for every mask candidate
+/// with its matrix and penalty score.
+pub(crate) fn choose_mask_with<F>(
+    base: &Matrix,
+    level: CorrectionLevel,
+    forced_mask: Option<u8>,
+    mut on_candidate: F,
+) -> Result<(Vec<Vec<u8>>, u8), QrError>
+where
+    F: FnMut(&Matrix, u8, u32),
+{
     if let Some(mask) = forced_mask {
         if mask > 7 {
             return Err(QrError::InvalidMask(mask));
@@ -448,6 +506,8 @@ pub(crate) fn choose_mask(
         let mut matrix = base.clone();
         matrix.apply_mask(mask);
         matrix.draw_format_info(level, mask);
+        let score = matrix.penalty();
+        on_candidate(&matrix, mask, score);
         return Ok((matrix.modules, mask));
     }
 
@@ -458,6 +518,7 @@ pub(crate) fn choose_mask(
         matrix.apply_mask(mask);
         matrix.draw_format_info(level, mask);
         let score = matrix.penalty();
+        on_candidate(&matrix, mask, score);
 
         let is_better = match &best {
             Some((best_score, _, _)) => score < *best_score,

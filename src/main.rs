@@ -1,6 +1,8 @@
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::process;
+use std::time::Duration;
 
+use infinitylib_qrcode_rs::trace::{self, Frame, TraceOptions};
 use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +24,12 @@ struct Options {
     output: Option<String>,
     info: bool,
     utf8_eci: bool,
+    animate: bool,
+    fps: u64,
+    stride: usize,
+    max_frames: usize,
+    no_color: bool,
+    show_mask_candidates: bool,
 }
 
 fn main() {
@@ -33,6 +41,20 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let options = parse_args()?;
+
+    if options.animate {
+        if options.output.is_some() {
+            return Err("--animate ne peut pas être utilisé avec --output".to_string());
+        }
+        if options.utf8_eci {
+            return Err("--animate ne supporte pas encore --utf8-eci".to_string());
+        }
+        if options.format != Format::Ascii {
+            return Err("--animate utilise toujours le rendu terminal".to_string());
+        }
+
+        return animate(&options);
+    }
 
     let qr = match (options.version, options.utf8_eci) {
         (Some(version), true) => QrCode::encode_utf8_version(&options.data, version, options.level),
@@ -101,6 +123,219 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
+fn animate(options: &Options) -> Result<(), String> {
+    let trace_options = TraceOptions {
+        version: options.version,
+        data_stride: options.stride,
+        show_mask_candidates: options.show_mask_candidates,
+        max_frames: options.max_frames,
+    };
+
+    let trace = trace::trace(&options.data, options.level, trace_options)
+        .map_err(|error| error.to_string())?;
+    let _cursor = CursorGuard::hide();
+
+    let delay = Duration::from_millis(1000 / options.fps.max(1));
+    let total = trace.frames.len();
+    let use_color = !options.no_color && std::io::stdout().is_terminal();
+
+    for (index, frame) in trace.frames.iter().enumerate() {
+        render_frame(
+            &trace,
+            frame,
+            index + 1,
+            total,
+            options.quiet_zone,
+            use_color,
+        );
+
+        if index + 1 < total {
+            std::thread::sleep(delay);
+        }
+    }
+
+    std::thread::sleep(Duration::from_millis(800));
+    Ok(())
+}
+
+fn render_frame(
+    trace: &trace::Trace,
+    frame: &Frame,
+    index: usize,
+    total: usize,
+    quiet_zone: usize,
+    use_color: bool,
+) {
+    let summary = &trace.summary;
+    print!("\x1b[2J\x1b[H");
+
+    println!("QR Code — construction pas à pas");
+    println!(
+        "Version {} · niveau {} · {}×{} · {} data codewords · {} ECC/bloc · {} bloc(s)",
+        summary.version,
+        summary.level,
+        summary.size,
+        summary.size,
+        summary.data_codewords,
+        summary.ecc_per_block,
+        summary.blocks
+    );
+
+    let segments = summary
+        .segments
+        .iter()
+        .map(|segment| format!("{:?}({})", segment.mode, segment.characters))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    println!("Segments : {segments}");
+    println!();
+    println!("[{index}/{total}] {}", frame.title);
+    println!("{}", frame.description);
+
+    if let Some(mask) = frame.mask {
+        print!("Masque {mask}");
+
+        if let Some(penalty) = frame.penalty {
+            print!(" · pénalité {penalty}");
+        }
+
+        println!();
+    }
+
+    println!();
+
+    let size = frame.modules.len();
+    let highlight = build_highlight_mask(size, &frame.highlight);
+    let width = size + 2 * quiet_zone;
+    let mut output = String::new();
+
+    for _ in 0..quiet_zone {
+        push_quiet_line(&mut output, width, use_color);
+    }
+
+    for (y, row) in frame.modules.iter().enumerate() {
+        push_rendered_row(&mut output, row, &highlight[y], quiet_zone, use_color);
+    }
+
+    for _ in 0..quiet_zone {
+        push_quiet_line(&mut output, width, use_color);
+    }
+
+    print!("{output}");
+    let _ = std::io::stdout().flush();
+}
+
+fn build_highlight_mask(size: usize, positions: &[(usize, usize)]) -> Vec<Vec<bool>> {
+    let mut mask = vec![vec![false; size]; size];
+
+    for &(x, y) in positions {
+        if x < size && y < size {
+            mask[y][x] = true;
+        }
+    }
+
+    mask
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CellColor {
+    Dark,
+    Light,
+    Highlight,
+}
+
+impl CellColor {
+    fn ansi(self) -> &'static str {
+        match self {
+            Self::Dark => "\x1b[40m",
+            Self::Light => "\x1b[47m",
+            Self::Highlight => "\x1b[41m",
+        }
+    }
+}
+
+fn push_rendered_row(
+    output: &mut String,
+    row: &[u8],
+    highlight: &[bool],
+    quiet_zone: usize,
+    use_color: bool,
+) {
+    let width = row.len() + 2 * quiet_zone;
+
+    if use_color {
+        let mut current = None;
+
+        for index in 0..width {
+            let color = if index < quiet_zone || index >= quiet_zone + row.len() {
+                CellColor::Light
+            } else {
+                let x = index - quiet_zone;
+
+                if highlight[x] {
+                    CellColor::Highlight
+                } else if row[x] == 1 {
+                    CellColor::Dark
+                } else {
+                    CellColor::Light
+                }
+            };
+
+            if current != Some(color) {
+                output.push_str(color.ansi());
+                current = Some(color);
+            }
+
+            output.push(' ');
+        }
+
+        output.push_str("\x1b[0m\n");
+    } else {
+        output.push_str(&" ".repeat(quiet_zone));
+
+        for (x, &module) in row.iter().enumerate() {
+            output.push(if highlight[x] {
+                '*'
+            } else if module == 1 {
+                '█'
+            } else {
+                ' '
+            });
+        }
+
+        output.push_str(&" ".repeat(quiet_zone));
+        output.push('\n');
+    }
+}
+
+fn push_quiet_line(output: &mut String, width: usize, use_color: bool) {
+    if use_color {
+        output.push_str("\x1b[47m");
+        output.push_str(&" ".repeat(width));
+        output.push_str("\x1b[0m\n");
+    } else {
+        output.push_str(&" ".repeat(width));
+        output.push('\n');
+    }
+}
+
+struct CursorGuard;
+
+impl CursorGuard {
+    fn hide() -> Self {
+        print!("\x1b[?25l");
+        let _ = std::io::stdout().flush();
+        Self
+    }
+}
+
+impl Drop for CursorGuard {
+    fn drop(&mut self) {
+        print!("\x1b[0m\x1b[?25h");
+        let _ = std::io::stdout().flush();
+    }
+}
+
 fn parse_args() -> Result<Options, String> {
     let mut data = None;
     let mut level = CorrectionLevel::Medium;
@@ -111,6 +346,12 @@ fn parse_args() -> Result<Options, String> {
     let mut output = None;
     let mut info = false;
     let mut utf8_eci = false;
+    let mut animate = false;
+    let mut fps = 20;
+    let mut stride = 0;
+    let mut max_frames = 300;
+    let mut no_color = false;
+    let mut show_mask_candidates = true;
 
     let mut arguments = std::env::args().skip(1);
 
@@ -176,6 +417,41 @@ fn parse_args() -> Result<Options, String> {
             "--bits" => format = Format::Bits,
             "--info" => info = true,
             "--utf8-eci" => utf8_eci = true,
+            "--animate" => animate = true,
+            "--fps" => {
+                let value = arguments
+                    .next()
+                    .ok_or_else(|| "--fps attend une valeur".to_string())?;
+                fps = value
+                    .parse::<u64>()
+                    .map_err(|_| format!("fps invalide: {value}"))?;
+
+                if fps == 0 {
+                    return Err("--fps doit être supérieur ou égal à 1".to_string());
+                }
+            }
+            "--stride" => {
+                let value = arguments
+                    .next()
+                    .ok_or_else(|| "--stride attend une valeur".to_string())?;
+                stride = value
+                    .parse::<usize>()
+                    .map_err(|_| format!("stride invalide: {value}"))?;
+            }
+            "--max-frames" => {
+                let value = arguments
+                    .next()
+                    .ok_or_else(|| "--max-frames attend une valeur".to_string())?;
+                max_frames = value
+                    .parse::<usize>()
+                    .map_err(|_| format!("max-frames invalide: {value}"))?;
+
+                if max_frames == 0 {
+                    return Err("--max-frames doit être supérieur ou égal à 1".to_string());
+                }
+            }
+            "--no-color" => no_color = true,
+            "--no-mask-candidates" => show_mask_candidates = false,
             _ if argument.starts_with('-') => {
                 return Err(format!("option inconnue: {argument}"));
             }
@@ -198,6 +474,12 @@ fn parse_args() -> Result<Options, String> {
         output,
         info,
         utf8_eci,
+        animate,
+        fps,
+        stride,
+        max_frames,
+        no_color,
+        show_mask_candidates,
     })
 }
 
@@ -239,12 +521,23 @@ Options :
   --bits                               Raccourci pour --format bits
   --info                               Affiche la version, le niveau et le masque sur stderr
   --utf8-eci                           Ajoute un designateur ECI 26 (UTF-8)
+
+Animation terminal :
+  --animate                            Montre la construction pas à pas
+  --fps <n>                            Images par seconde (défaut : 20)
+  --stride <n>                         Une frame de données toutes les n modules (0 = auto)
+  --max-frames <n>                     Maximum de frames de données (défaut : 300)
+  --no-color                           Désactive les couleurs ANSI
+  --no-mask-candidates                 Ne montre pas les 8 masques candidats
+
   -h, --help                           Affiche cette aide
 
 Exemples :
   infinitylib-qrcode-rs "HELLO WORLD"
   infinitylib-qrcode-rs "HELLO WORLD" --format bits
   infinitylib-qrcode-rs "HELLO WORLD" --format svg -o hello.svg
+  infinitylib-qrcode-rs "HELLO WORLD" --animate
+  infinitylib-qrcode-rs "HELLO WORLD" --animate --fps 20 --version 4
   cargo run --features png -- "HELLO WORLD" --format png -o hello.png
 "#
     );
