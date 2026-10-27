@@ -82,3 +82,26 @@ fn decodes_version_1_with_automatic_mode_detection() {
         assert_eq!(decode(&qr), data, "failed to decode {data:?}");
     }
 }
+
+#[test]
+fn decodes_versions_2_to_6() {
+    let lengths = [0, 7, 14, 24, 34, 44, 58];
+
+    for version in 2..=6u8 {
+        let data = "a".repeat(lengths[version as usize]);
+        let qr = QrCode::encode_version(&data, version, CorrectionLevel::High)
+            .expect("QR generation failed");
+
+        assert_eq!(qr.version(), version);
+        assert_eq!(decode(&qr), data, "failed to decode version {version}");
+    }
+}
+
+#[test]
+fn decodes_automatic_version_selection() {
+    let data = "a".repeat(45);
+    let qr = QrCode::encode(&data, CorrectionLevel::High).expect("QR generation failed");
+
+    assert_eq!(qr.version(), 6);
+    assert_eq!(decode(&qr), data);
+}

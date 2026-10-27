@@ -48,6 +48,68 @@ pub(crate) fn encode(data: &[u8], ecc_len: usize) -> Vec<u8> {
     message[data.len()..].to_vec()
 }
 
+/// Splits the data codewords into QR blocks, computes the ECC codewords for
+/// each block, then interleaves data and ECC codewords as required by the
+/// standard.
+///
+/// Short blocks come first. The number of long blocks is
+/// `total_codewords % num_blocks`.
+pub(crate) fn encode_blocks(
+    data: &[u8],
+    ecc_len: usize,
+    num_blocks: usize,
+    total_codewords: usize,
+) -> Vec<u8> {
+    debug_assert!(num_blocks > 0);
+    debug_assert_eq!(data.len() + ecc_len * num_blocks, total_codewords);
+
+    let num_long_blocks = total_codewords % num_blocks;
+    let num_short_blocks = num_blocks - num_long_blocks;
+    let short_block_len = total_codewords / num_blocks;
+    let short_data_len = short_block_len - ecc_len;
+
+    let mut blocks: Vec<(&[u8], Vec<u8>)> = Vec::with_capacity(num_blocks);
+    let mut offset = 0;
+
+    for block_index in 0..num_blocks {
+        let extra_codeword = if block_index >= num_short_blocks {
+            1
+        } else {
+            0
+        };
+        let data_len = short_data_len + extra_codeword;
+        let block_data = &data[offset..offset + data_len];
+        let block_ecc = encode(block_data, ecc_len);
+
+        blocks.push((block_data, block_ecc));
+        offset += data_len;
+    }
+
+    debug_assert_eq!(offset, data.len());
+
+    let max_data_len = short_data_len + 1;
+    let mut result = Vec::with_capacity(total_codewords);
+
+    // Interleave data codewords.
+    for index in 0..max_data_len {
+        for (block_data, _) in &blocks {
+            if let Some(&byte) = block_data.get(index) {
+                result.push(byte);
+            }
+        }
+    }
+
+    // Interleave ECC codewords.
+    for index in 0..ecc_len {
+        for (_, block_ecc) in &blocks {
+            result.push(block_ecc[index]);
+        }
+    }
+
+    debug_assert_eq!(result.len(), total_codewords);
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,6 +152,32 @@ mod tests {
 
         for i in 0..ecc_len {
             assert_eq!(evaluate(&codeword, gf256::pow(i)), 0);
+        }
+    }
+
+    #[test]
+    fn block_encoding_produces_the_expected_number_of_codewords() {
+        use crate::qr::CorrectionLevel;
+        use crate::tables;
+
+        let cases = [
+            (1, CorrectionLevel::Low),
+            (2, CorrectionLevel::Low),
+            (3, CorrectionLevel::Quartile),
+            (5, CorrectionLevel::Quartile),
+            (6, CorrectionLevel::High),
+        ];
+
+        for (version, level) in cases {
+            let data_len = tables::data_codewords(version, level);
+            let ecc_len = tables::ecc_codewords(version, level);
+            let num_blocks = tables::num_blocks(version, level);
+            let total = tables::total_codewords(version);
+            let data = vec![0u8; data_len];
+
+            let codewords = encode_blocks(&data, ecc_len, num_blocks, total);
+
+            assert_eq!(codewords.len(), total);
         }
     }
 }

@@ -32,7 +32,7 @@ impl fmt::Display for QrError {
             }
             Self::UnsupportedVersion(version) => write!(
                 f,
-                "QR version {version} is not supported yet; only version 1 is implemented"
+                "QR version {version} is not supported yet; versions 1 to 6 are implemented"
             ),
             Self::DataTooLong {
                 version,

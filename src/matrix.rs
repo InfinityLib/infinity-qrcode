@@ -30,10 +30,11 @@ impl Matrix {
         self.draw_finder(self.size - 7, 0);
         self.draw_finder(0, self.size - 7);
         self.draw_timing_patterns();
+        self.draw_alignment_patterns(version);
         self.reserve_format_info();
 
-        // Version 1 has no alignment patterns and no version information.
-        // These will be added when versions 2..=40 are implemented.
+        // Version information is only present from version 7 onwards and will
+        // be added when versions 7..=40 are implemented.
     }
 
     /// Draws one finder pattern and its light separator.
@@ -69,6 +70,41 @@ impl Matrix {
             let value = u8::from(coordinate % 2 == 0);
             self.set_function(coordinate, 6, value);
             self.set_function(6, coordinate, value);
+        }
+    }
+
+    /// Draws every alignment pattern except the three that would overlap a
+    /// finder pattern.
+    fn draw_alignment_patterns(&mut self, version: u8) {
+        let positions = alignment_positions(version);
+        let count = positions.len();
+
+        for i in 0..count {
+            for j in 0..count {
+                let overlaps_finder =
+                    (i == 0 && j == 0) || (i == 0 && j == count - 1) || (i == count - 1 && j == 0);
+
+                if !overlaps_finder {
+                    self.draw_alignment_pattern(positions[i], positions[j]);
+                }
+            }
+        }
+    }
+
+    fn draw_alignment_pattern(&mut self, center_x: usize, center_y: usize) {
+        for dy in -2isize..=2 {
+            for dx in -2isize..=2 {
+                let x = center_x as isize + dx;
+                let y = center_y as isize + dy;
+
+                if x < 0 || y < 0 || x >= self.size as isize || y >= self.size as isize {
+                    continue;
+                }
+
+                // 5x5 pattern: dark border, light ring, dark centre.
+                let dark = dx.abs().max(dy.abs()) != 1;
+                self.set_function(x as usize, y as usize, u8::from(dark));
+            }
         }
     }
 
@@ -306,6 +342,28 @@ impl Matrix {
     }
 }
 
+/// Returns the alignment pattern centre coordinates for a version.
+///
+/// Alignment patterns use the same coordinates on both axes. Version 1 has no
+/// alignment patterns.
+pub(crate) fn alignment_positions(version: u8) -> Vec<usize> {
+    if version == 1 {
+        return Vec::new();
+    }
+
+    let version = version as usize;
+    let num_align = version / 7 + 2;
+    let step = (version * 8 + num_align * 3 + 5) / (num_align * 4 - 4) * 2;
+    let size = 17 + 4 * version;
+
+    let mut positions: Vec<usize> = (0..num_align - 1)
+        .map(|index| size - 7 - index * step)
+        .collect();
+    positions.push(6);
+    positions.reverse();
+    positions
+}
+
 /// Applies one of the eight QR data mask formulas.
 fn mask_bit(mask: u8, x: usize, y: usize) -> bool {
     match mask {
@@ -446,19 +504,52 @@ mod tests {
     }
 
     #[test]
-    fn version_1_has_208_data_modules() {
-        let mut matrix = Matrix::new(21);
-        matrix.draw_function_patterns(1);
+    fn function_modules_match_the_raw_data_capacity() {
+        for version in 1..=6 {
+            let size = 17 + 4 * version as usize;
+            let mut matrix = Matrix::new(size);
+            matrix.draw_function_patterns(version);
 
-        let function_modules = matrix
-            .function
-            .iter()
-            .flatten()
-            .filter(|&&is_function| is_function)
-            .count();
+            let function_modules = matrix
+                .function
+                .iter()
+                .flatten()
+                .filter(|&&is_function| is_function)
+                .count();
 
-        assert_eq!(function_modules, 233);
-        assert_eq!(21 * 21 - function_modules, 208);
+            assert_eq!(
+                size * size - function_modules,
+                crate::tables::raw_data_modules(version),
+                "wrong number of data modules for version {version}"
+            );
+        }
+    }
+
+    #[test]
+    fn alignment_positions_are_correct() {
+        assert_eq!(alignment_positions(1), Vec::<usize>::new());
+        assert_eq!(alignment_positions(2), vec![6, 18]);
+        assert_eq!(alignment_positions(3), vec![6, 22]);
+        assert_eq!(alignment_positions(6), vec![6, 34]);
+        assert_eq!(alignment_positions(7), vec![6, 22, 38]);
+        assert_eq!(alignment_positions(32), vec![6, 34, 60, 86, 112, 138]);
+        assert_eq!(alignment_positions(40), vec![6, 30, 58, 86, 114, 142, 170]);
+    }
+
+    #[test]
+    fn alignment_pattern_is_drawn_on_version_2() {
+        let mut matrix = Matrix::new(25);
+        matrix.draw_function_patterns(2);
+
+        // Centre and rings of the alignment pattern at (18, 18).
+        assert_eq!(matrix.modules[18][18], 1);
+        assert_eq!(matrix.modules[18][17], 0);
+        assert_eq!(matrix.modules[18][16], 1);
+        assert_eq!(matrix.modules[17][17], 0);
+        assert_eq!(matrix.modules[16][16], 1);
+
+        assert!(matrix.function[18][18]);
+        assert!(matrix.function[16][16]);
     }
 
     #[test]
