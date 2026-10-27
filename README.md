@@ -7,7 +7,9 @@ Générateur de QR Code en Rust.
 Le projet génère de vrais QR Codes **versions 1 à 40 (21×21 à 177×177)**,
 décodables par un lecteur standard.
 
-- Modes Numeric, Alphanumeric et Byte.
+- Modes Numeric, Alphanumeric, Byte et Kanji (Shift-JIS brut).
+- Segmentation multi-modes automatique pour réduire la taille.
+- ECI 26 / UTF-8 explicite.
 - Niveaux de correction `Low`, `Medium`, `Quartile` et `High`.
 - Reed-Solomon, blocs ECC, interleaving, alignment patterns, version
   information, placement des données, masques et format information, sans
@@ -53,6 +55,18 @@ let svg = qr.to_svg(8, 4); // taille d'un module, quiet zone
 let png: Vec<u8> = qr.to_png(8, 4).unwrap();
 ```
 
+Pour indiquer explicitement que les données sont de l'UTF-8 :
+
+```rust
+let qr = QrCode::encode_utf8("Héllo, wörld !", CorrectionLevel::Medium)?;
+```
+
+Pour le mode Kanji, l'API attend des octets Shift-JIS bruts :
+
+```rust
+let qr = QrCode::encode_kanji_shift_jis(b"\x93\x5f\xe4\xaa", CorrectionLevel::Low)?;
+```
+
 ## Démo
 
 ```bash
@@ -60,6 +74,7 @@ cargo run -- "HELLO WORLD"
 cargo run -- "HELLO WORLD" --format bits
 cargo run -- "HELLO WORLD" --format pbm -o hello.pbm
 cargo run -- "HELLO WORLD" --format svg --scale 8 -o hello.svg
+cargo run -- "Héllo" --utf8-eci
 cargo run --features png -- "HELLO WORLD" --format png -o hello.png
 ```
 
@@ -71,7 +86,7 @@ Options principales :
 - `--scale <n>`
 - `--quiet-zone <n>`
 - `-o, --output <chemin>`
-- `--bits`, `--info`, `--help`
+- `--bits`, `--info`, `--utf8-eci`, `--help`
 
 ## Tests
 
@@ -87,5 +102,5 @@ de correction, puis décodent les QR générés avec `rqrr`.
 
 ## Prochaines étapes
 
-- Mode Kanji, ECI/UTF-8 et segmentation multi-modes.
+- Conversion UTF-8 vers Shift-JIS pour le mode Kanji.
 - Optimisations et support `no_std`.

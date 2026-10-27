@@ -1,9 +1,14 @@
 //! A small QR Code generator written in Rust.
 //!
 //! The current implementation supports QR Code versions 1 to 40 (21×21 to
-//! 177×177 modules), with the Numeric, Alphanumeric and Byte modes, all four
-//! error correction levels, automatic version selection, block interleaving,
-//! alignment patterns and version information.
+//! 177×177 modules), with the Numeric, Alphanumeric, Byte and Kanji modes, all
+//! four error correction levels, automatic version selection, block
+//! interleaving, alignment patterns and version information.
+//!
+//! [`QrCode::encode`] automatically splits the input into mixed-mode segments.
+//! UTF-8 text can be marked with an ECI 26 designator using
+//! [`QrCode::encode_utf8`], and Kanji mode accepts raw Shift-JIS bytes through
+//! [`QrCode::encode_kanji_shift_jis`].
 //!
 //! Outputs are available as a `Vec<Vec<u8>>` matrix, ASCII, PBM and SVG, plus
 //! PNG when the `png` feature is enabled.
@@ -23,6 +28,7 @@
 mod bits;
 mod gf256;
 mod matrix;
+mod optimize;
 mod output;
 mod reed_solomon;
 mod tables;

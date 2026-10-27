@@ -112,6 +112,28 @@ fn decodes_large_versions() {
 }
 
 #[test]
+fn decodes_optimized_mixed_mode_data() {
+    let cases = [
+        "HELLO12345678901234567890world",
+        "Order #1234567890: 42 units",
+        "https://example.com/path?q=1234567890",
+    ];
+
+    for data in cases {
+        let qr = QrCode::encode(data, CorrectionLevel::Medium).expect("QR generation failed");
+        assert_eq!(decode(&qr), data, "failed to decode {data:?}");
+    }
+}
+
+#[test]
+fn decodes_utf8_with_eci() {
+    let data = "Héllo, wörld ! 123";
+    let qr = QrCode::encode_utf8(data, CorrectionLevel::Medium).expect("QR generation failed");
+
+    assert_eq!(decode(&qr), data);
+}
+
+#[test]
 fn decodes_automatic_version_selection() {
     let data = "a".repeat(45);
     let qr = QrCode::encode(&data, CorrectionLevel::High).expect("QR generation failed");

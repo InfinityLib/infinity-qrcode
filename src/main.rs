@@ -21,6 +21,7 @@ struct Options {
     quiet_zone: usize,
     output: Option<String>,
     info: bool,
+    utf8_eci: bool,
 }
 
 fn main() {
@@ -33,9 +34,11 @@ fn main() {
 fn run() -> Result<(), String> {
     let options = parse_args()?;
 
-    let qr = match options.version {
-        Some(version) => QrCode::encode_version(&options.data, version, options.level),
-        None => QrCode::encode(&options.data, options.level),
+    let qr = match (options.version, options.utf8_eci) {
+        (Some(version), true) => QrCode::encode_utf8_version(&options.data, version, options.level),
+        (None, true) => QrCode::encode_utf8(&options.data, options.level),
+        (Some(version), false) => QrCode::encode_version(&options.data, version, options.level),
+        (None, false) => QrCode::encode(&options.data, options.level),
     }
     .map_err(|error| error.to_string())?;
 
@@ -107,6 +110,7 @@ fn parse_args() -> Result<Options, String> {
     let mut quiet_zone = 4;
     let mut output = None;
     let mut info = false;
+    let mut utf8_eci = false;
 
     let mut arguments = std::env::args().skip(1);
 
@@ -171,6 +175,7 @@ fn parse_args() -> Result<Options, String> {
             }
             "--bits" => format = Format::Bits,
             "--info" => info = true,
+            "--utf8-eci" => utf8_eci = true,
             _ if argument.starts_with('-') => {
                 return Err(format!("option inconnue: {argument}"));
             }
@@ -192,6 +197,7 @@ fn parse_args() -> Result<Options, String> {
         quiet_zone,
         output,
         info,
+        utf8_eci,
     })
 }
 
@@ -232,6 +238,7 @@ Options :
   -o, --output <chemin>                Écrit dans un fichier
   --bits                               Raccourci pour --format bits
   --info                               Affiche la version, le niveau et le masque sur stderr
+  --utf8-eci                           Ajoute un designateur ECI 26 (UTF-8)
   -h, --help                           Affiche cette aide
 
 Exemples :

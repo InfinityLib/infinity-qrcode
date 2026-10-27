@@ -16,8 +16,18 @@ pub enum QrError {
     },
     /// A character cannot be represented in the selected mode.
     InvalidCharacter(char),
-    /// The mode is not implemented yet.
-    UnsupportedMode(Mode),
+    /// Kanji mode needs raw Shift-JIS bytes.
+    KanjiRequiresShiftJis,
+    /// The Shift-JIS byte sequence is not valid for QR Kanji mode.
+    InvalidKanjiData,
+    /// The ECI designator is outside the supported range `0..=999999`.
+    InvalidEciDesignator(u32),
+    /// A segment exceeds the capacity of its character count indicator.
+    CharacterCountOverflow {
+        mode: Mode,
+        version: u8,
+        count: usize,
+    },
     /// The mask number is outside the valid range `0..=7`.
     InvalidMask(u8),
     /// PNG encoding failed.
@@ -46,9 +56,28 @@ impl fmt::Display for QrError {
                     "character {character:?} cannot be encoded in the selected mode"
                 )
             }
-            Self::UnsupportedMode(mode) => {
-                write!(f, "mode {mode} is not supported yet")
-            }
+            Self::KanjiRequiresShiftJis => write!(
+                f,
+                "Kanji mode requires raw Shift-JIS bytes; use encode_kanji_shift_jis"
+            ),
+            Self::InvalidKanjiData => write!(
+                f,
+                "invalid Shift-JIS data for QR Kanji mode; expected two-byte characters in \
+                 0x8140..=0x9FFC or 0xE040..=0xEBBF"
+            ),
+            Self::InvalidEciDesignator(designator) => write!(
+                f,
+                "invalid ECI designator {designator}; expected 0..=999999"
+            ),
+            Self::CharacterCountOverflow {
+                mode,
+                version,
+                count,
+            } => write!(
+                f,
+                "segment has {count} characters in mode {mode}, which does not fit the count \
+                 indicator for version {version}"
+            ),
             Self::InvalidMask(mask) => {
                 write!(f, "invalid QR mask {mask}; expected 0..=7")
             }

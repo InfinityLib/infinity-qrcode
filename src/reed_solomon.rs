@@ -26,8 +26,15 @@ pub(crate) fn generator_polynomial(ecc_len: usize) -> Vec<u8> {
 }
 
 /// Returns the `ecc_len` error correction codewords for `data`.
+#[cfg(test)]
 pub(crate) fn encode(data: &[u8], ecc_len: usize) -> Vec<u8> {
     let generator = generator_polynomial(ecc_len);
+    encode_with_generator(data, &generator)
+}
+
+/// Encodes `data` with a precomputed generator polynomial.
+fn encode_with_generator(data: &[u8], generator: &[u8]) -> Vec<u8> {
+    let ecc_len = generator.len() - 1;
 
     // Multiply the message by x^ecc_len, then divide by the generator.
     let mut message = Vec::with_capacity(data.len() + ecc_len);
@@ -67,6 +74,7 @@ pub(crate) fn encode_blocks(
     let num_short_blocks = num_blocks - num_long_blocks;
     let short_block_len = total_codewords / num_blocks;
     let short_data_len = short_block_len - ecc_len;
+    let generator = generator_polynomial(ecc_len);
 
     let mut blocks: Vec<(&[u8], Vec<u8>)> = Vec::with_capacity(num_blocks);
     let mut offset = 0;
@@ -79,7 +87,7 @@ pub(crate) fn encode_blocks(
         };
         let data_len = short_data_len + extra_codeword;
         let block_data = &data[offset..offset + data_len];
-        let block_ecc = encode(block_data, ecc_len);
+        let block_ecc = encode_with_generator(block_data, &generator);
 
         blocks.push((block_data, block_ecc));
         offset += data_len;
