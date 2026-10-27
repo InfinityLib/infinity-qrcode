@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Pre-commit hook: format and lint what is staged, before it lands.
+#
+# Install once per clone:
+#   bash scripts/install-hooks.sh
+#   # or: git config core.hooksPath .githooks
+#
+# The hook stays fast: it formats and lints, it does not run the test suite.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+staged() {
+    git diff --cached --name-only --diff-filter=ACMR | grep -E "$1" || true
+}
+
+have() {
+    if command -v "$1" >/dev/null 2>&1; then
+        return 0
+    fi
+    printf '\n  %s is not installed: %s skipped.\n' "$1" "$2" >&2
+    return 1
+}
+
+# --- Rust -------------------------------------------------------------------
+rs_files="$(staged '\.rs$')"
+if [ -n "$rs_files" ] && have rustfmt "formatting the staged Rust files"; then
+    # shellcheck disable=SC2086
+    rustfmt --edition 2024 $rs_files
+    # Formatting rewrites the working tree; the index still holds the old bytes.
+    # shellcheck disable=SC2086
+    git add -- $rs_files
+fi
+if [ -n "$rs_files" ] && have cargo "linting the workspace"; then
+    cargo clippy --workspace --all-targets --quiet -- -D warnings
+fi
+
+# --- Shell ------------------------------------------------------------------
+sh_files="$(staged '\.sh$')"
+if [ -n "$sh_files" ] && have shellcheck "checking the staged shell scripts"; then
+    # shellcheck disable=SC2086
+    shellcheck $sh_files
+fi

@@ -174,6 +174,27 @@ Les tests comparent les matrices à `qrcodegen` pour les versions 1 à 40, les
 8 masques et les 4 niveaux de correction, puis décodent les QR générés avec
 `rqrr`.
 
+## CI
+
+La CI tourne en local uniquement ; il n'y a pas de CI hébergée sur Codeberg.
+
+```bash
+bash scripts/ci.sh
+```
+
+Le script exécute le formatage, Clippy, toute la suite de tests, le build
+`no_std`, les vérifications WASM, la syntaxe JavaScript du web et
+`ibrain sync --check`.
+
+Installer les hooks Git versionnés une fois par clone :
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+Le hook `pre-commit` formate et lint les fichiers Rust indexés ; le hook
+`commit-msg` impose les Conventional Commits.
+
 ## Serde
 
 Serde n'est pas utilisé pour l'instant. Il ne sera ajouté que si on veut
