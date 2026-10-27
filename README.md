@@ -186,3 +186,11 @@ data directly through `wasm-bindgen`.
 - Web UI polish and HTML/GIF export.
 - `no_std` validation on an embedded target.
 - Optimizations and benchmarks.
+
+## License
+
+Licensed under either of the Apache License, Version 2.0 or the MIT license,
+at your option.
+
+- [LICENSE-APACHE](LICENSE-APACHE)
+- [LICENSE-MIT](LICENSE-MIT)

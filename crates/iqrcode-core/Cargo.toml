@@ -1,7 +1,11 @@
 [package]
 name = "iqrcode-core"
-version = "0.1.0"
-edition = "2024"
+description = "Core QR Code encoder: encoding, Reed-Solomon, matrix and trace."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [features]
 default = []
@@ -10,7 +14,10 @@ trace = []
 png = ["std", "dep:png"]
 
 [dependencies]
-png = { version = "0.18", optional = true }
+png = { workspace = true, optional = true }
 
 [dev-dependencies]
-qrcodegen = "1.8"
+qrcodegen = { workspace = true }
+
+[lints]
+workspace = true

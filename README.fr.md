@@ -186,3 +186,10 @@ actuel expose directement les données via `wasm-bindgen`.
 - Peaufinage de l'UI web et export HTML/GIF.
 - Validation `no_std` sur une cible embarquée.
 - Optimisations et benchmarks.
+
+## Licence
+
+Distribué sous licence Apache 2.0 ou MIT, au choix.
+
+- [LICENSE-APACHE](LICENSE-APACHE)
+- [LICENSE-MIT](LICENSE-MIT)
