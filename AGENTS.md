@@ -45,20 +45,25 @@ rewriting it. Keep the index in `docs/decisions/README.md` up to date.
 
 ## Testing
 
-Run the full suite before pushing:
+Run the local CI suite before pushing:
 
 ```bash
-cargo test --workspace --all-features
-cargo test -p iqrcode-core --features trace
-cargo check -p iqrcode-core --no-default-features
-cargo check -p iqrcode-learn-wasm --target wasm32-unknown-unknown
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo fmt --check
+bash scripts/ci.sh
 ```
+
+It runs the full workspace tests, Clippy, formatting, the `no_std` build, the
+WASM checks, the web JavaScript syntax checks and `ibrain sync --check`.
 
 The QR encoder is validated against `qrcodegen` (matrix comparison) and `rqrr`
 (decoding generated QR Codes). Add positive and negative cases for capacity,
 versions, modes and malformed input.
+
+## CI
+
+CI runs locally only. No hosted CI is configured on Codeberg.
+
+- Full local suite: `bash scripts/ci.sh`
+- Install the versioned Git hooks once per clone: `bash scripts/install-hooks.sh`
 
 ## Git workflow
 

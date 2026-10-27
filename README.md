@@ -174,6 +174,26 @@ cargo fmt --check
 Tests compare matrices against `qrcodegen` for versions 1 to 40, all 8 masks
 and all 4 correction levels, then decode generated QR Codes with `rqrr`.
 
+## CI
+
+CI runs locally only; there is no hosted CI on Codeberg.
+
+```bash
+bash scripts/ci.sh
+```
+
+The script runs formatting, Clippy, the full test suite, the `no_std` build, the
+WASM checks, the web JavaScript syntax checks and `ibrain sync --check`.
+
+Install the versioned Git hooks once per clone:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+The `pre-commit` hook formats and lints staged Rust files; the `commit-msg` hook
+enforces Conventional Commits.
+
 ## Serde
 
 Serde is not used for now. It would only be added if we need to export frames
