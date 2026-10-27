@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-reed-solomon = "0.1"
+
+[dev-dependencies]
+qrcodegen = "1.8"
+rqrr = { version = "0.11", default-features = false }
