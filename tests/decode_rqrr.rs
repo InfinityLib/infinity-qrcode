@@ -98,6 +98,20 @@ fn decodes_versions_2_to_6() {
 }
 
 #[test]
+fn decodes_large_versions() {
+    let cases = [(7u8, 50usize), (10, 100), (20, 300), (40, 1000)];
+
+    for (version, length) in cases {
+        let data = "a".repeat(length);
+        let qr = QrCode::encode_version(&data, version, CorrectionLevel::High)
+            .expect("QR generation failed");
+
+        assert_eq!(qr.version(), version);
+        assert_eq!(decode(&qr), data, "failed to decode version {version}");
+    }
+}
+
+#[test]
 fn decodes_automatic_version_selection() {
     let data = "a".repeat(45);
     let qr = QrCode::encode(&data, CorrectionLevel::High).expect("QR generation failed");

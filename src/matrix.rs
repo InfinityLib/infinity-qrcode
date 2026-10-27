@@ -31,10 +31,12 @@ impl Matrix {
         self.draw_finder(0, self.size - 7);
         self.draw_timing_patterns();
         self.draw_alignment_patterns(version);
-        self.reserve_format_info();
 
-        // Version information is only present from version 7 onwards and will
-        // be added when versions 7..=40 are implemented.
+        if version >= 7 {
+            self.draw_version_info(version);
+        }
+
+        self.reserve_format_info();
     }
 
     /// Draws one finder pattern and its light separator.
@@ -105,6 +107,20 @@ impl Matrix {
                 let dark = dx.abs().max(dy.abs()) != 1;
                 self.set_function(x as usize, y as usize, u8::from(dark));
             }
+        }
+    }
+
+    /// Draws the two copies of the 18-bit version information.
+    fn draw_version_info(&mut self, version: u8) {
+        let bits = version_info_bits(version);
+
+        for index in 0..18 {
+            let bit = ((bits >> index) & 1) as u8;
+            let a = self.size - 11 + index % 3;
+            let b = index / 3;
+
+            self.set_function(a, b, bit);
+            self.set_function(b, a, bit);
         }
     }
 
@@ -379,6 +395,25 @@ fn mask_bit(mask: u8, x: usize, y: usize) -> bool {
     }
 }
 
+/// Computes the 18-bit version information with BCH(18,6) error correction.
+///
+/// The returned value is indexed least-significant bit first, matching the
+/// placement order defined by the standard.
+pub(crate) fn version_info_bits(version: u8) -> u32 {
+    debug_assert!((7..=40).contains(&version));
+
+    let version = u32::from(version);
+    let mut remainder = version << 12;
+
+    for bit in (12..18).rev() {
+        if remainder & (1u32 << bit) != 0 {
+            remainder ^= 0x1F25u32 << (bit - 12);
+        }
+    }
+
+    (version << 12) | (remainder & 0xFFF)
+}
+
 /// Computes the 15-bit format information with BCH(15,5) error correction.
 ///
 /// The returned value is indexed least-significant bit first, matching the
@@ -505,7 +540,7 @@ mod tests {
 
     #[test]
     fn function_modules_match_the_raw_data_capacity() {
-        for version in 1..=6 {
+        for version in 1..=40 {
             let size = 17 + 4 * version as usize;
             let mut matrix = Matrix::new(size);
             matrix.draw_function_patterns(version);
@@ -522,6 +557,40 @@ mod tests {
                 crate::tables::raw_data_modules(version),
                 "wrong number of data modules for version {version}"
             );
+        }
+    }
+
+    #[test]
+    fn version_info_matches_reference_values() {
+        let expected = [
+            (7, 0x07C94),
+            (8, 0x085BC),
+            (9, 0x09A99),
+            (10, 0x0A4D3),
+            (20, 0x149A6),
+            (40, 0x28C69),
+        ];
+
+        for (version, bits) in expected {
+            assert_eq!(version_info_bits(version), bits);
+        }
+    }
+
+    #[test]
+    fn version_info_is_placed_on_both_sides() {
+        let mut matrix = Matrix::new(45);
+        matrix.draw_function_patterns(7);
+        let bits = version_info_bits(7);
+
+        for index in 0..18 {
+            let bit = ((bits >> index) & 1) as u8;
+            let a = 45 - 11 + index % 3;
+            let b = index / 3;
+
+            assert_eq!(matrix.modules[b][a], bit);
+            assert_eq!(matrix.modules[a][b], bit);
+            assert!(matrix.function[b][a]);
+            assert!(matrix.function[a][b]);
         }
     }
 

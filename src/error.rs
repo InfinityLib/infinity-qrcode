@@ -7,8 +7,6 @@ use crate::qr::{CorrectionLevel, Mode};
 pub enum QrError {
     /// The version is outside the valid range `1..=40`.
     InvalidVersion(u8),
-    /// The version is valid, but not implemented yet.
-    UnsupportedVersion(u8),
     /// The data does not fit in the selected version and correction level.
     DataTooLong {
         version: u8,
@@ -30,10 +28,6 @@ impl fmt::Display for QrError {
             Self::InvalidVersion(version) => {
                 write!(f, "invalid QR version {version}; expected 1..=40")
             }
-            Self::UnsupportedVersion(version) => write!(
-                f,
-                "QR version {version} is not supported yet; versions 1 to 6 are implemented"
-            ),
             Self::DataTooLong {
                 version,
                 level,

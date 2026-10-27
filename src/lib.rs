@@ -1,9 +1,9 @@
 //! A small QR Code generator written in Rust.
 //!
-//! The current implementation supports QR Code versions 1 to 6 (21×21 to
-//! 41×41 modules), with the Numeric, Alphanumeric and Byte modes, all four
-//! error correction levels, automatic version selection and block
-//! interleaving.
+//! The current implementation supports QR Code versions 1 to 40 (21×21 to
+//! 177×177 modules), with the Numeric, Alphanumeric and Byte modes, all four
+//! error correction levels, automatic version selection, block interleaving,
+//! alignment patterns and version information.
 //!
 //! ```
 //! use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};

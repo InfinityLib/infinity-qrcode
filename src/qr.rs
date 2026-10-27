@@ -82,30 +82,33 @@ pub struct QrCode {
 }
 
 /// Highest version currently implemented.
-pub(crate) const MAX_SUPPORTED_VERSION: u8 = 6;
+pub(crate) const MAX_SUPPORTED_VERSION: u8 = 40;
 
 impl QrCode {
-    /// Encodes `data` in the smallest supported QR Code that can hold it.
-    ///
-    /// Versions 1 to 6 are implemented for now.
+    /// Encodes `data` in the smallest QR Code that can hold it.
     pub fn encode(data: &str, level: CorrectionLevel) -> Result<Self, QrError> {
         let mode = bits::determine_mode(data);
-        let mut last_error = None;
+        let mut needed_bits = 0;
 
         for version in 1..=MAX_SUPPORTED_VERSION {
-            match Self::build(data, mode, version, level, None) {
-                Ok(qr) => return Ok(qr),
-                Err(error @ QrError::DataTooLong { .. }) => last_error = Some(error),
-                Err(error) => return Err(error),
+            needed_bits = bits::required_bits(data, mode, version)?;
+            let capacity_bits = tables::data_codewords(version, level) * 8;
+
+            if needed_bits <= capacity_bits {
+                return Self::build(data, mode, version, level, None);
             }
         }
 
-        Err(last_error.expect("version 1 is always attempted"))
+        let capacity_bits = tables::data_codewords(MAX_SUPPORTED_VERSION, level) * 8;
+        Err(QrError::DataTooLong {
+            version: MAX_SUPPORTED_VERSION,
+            level,
+            needed_bits,
+            capacity_bits,
+        })
     }
 
     /// Encodes `data` in a specific version.
-    ///
-    /// Versions 1 to 6 are implemented for now.
     pub fn encode_version(
         data: &str,
         version: u8,
@@ -132,11 +135,8 @@ impl QrCode {
         level: CorrectionLevel,
         forced_mask: Option<u8>,
     ) -> Result<Self, QrError> {
-        if version == 0 || version > 40 {
+        if version == 0 || version > MAX_SUPPORTED_VERSION {
             return Err(QrError::InvalidVersion(version));
-        }
-        if version > MAX_SUPPORTED_VERSION {
-            return Err(QrError::UnsupportedVersion(version));
         }
         if mode == Mode::Kanji {
             return Err(QrError::UnsupportedMode(mode));
@@ -287,33 +287,44 @@ mod tests {
         .expect("reference encoding failed")
     }
 
+    fn assert_matches_reference_mask(
+        data: &str,
+        mode: Mode,
+        version: u8,
+        level: CorrectionLevel,
+        mask: u8,
+    ) {
+        let qr = QrCode::build(data, mode, version, level, Some(mask)).unwrap();
+        let reference = reference_qr(data, mode, version, level, mask);
+
+        assert_eq!(
+            qr.size(),
+            reference.size() as usize,
+            "size mismatch for version {version}, {data:?}, {mode:?}, {level:?}, mask {mask}"
+        );
+
+        for y in 0..qr.size() {
+            for x in 0..qr.size() {
+                assert_eq!(
+                    qr.modules()[y][x] == 1,
+                    reference.get_module(x as i32, y as i32),
+                    "module mismatch at ({x}, {y}) for version {version}, {data:?}, \
+                     {mode:?}, {level:?}, mask {mask}"
+                );
+            }
+        }
+    }
+
     fn assert_matches_reference(data: &str, mode: Mode, version: u8, level: CorrectionLevel) {
         for mask in 0u8..8 {
-            let qr = QrCode::build(data, mode, version, level, Some(mask)).unwrap();
-            let reference = reference_qr(data, mode, version, level, mask);
-
-            assert_eq!(
-                qr.size(),
-                reference.size() as usize,
-                "size mismatch for version {version}, {data:?}, {mode:?}, {level:?}, mask {mask}"
-            );
-
-            for y in 0..qr.size() {
-                for x in 0..qr.size() {
-                    assert_eq!(
-                        qr.modules()[y][x] == 1,
-                        reference.get_module(x as i32, y as i32),
-                        "module mismatch at ({x}, {y}) for version {version}, {data:?}, \
-                         {mode:?}, {level:?}, mask {mask}"
-                    );
-                }
-            }
+            assert_matches_reference_mask(data, mode, version, level, mask);
         }
     }
 
     fn byte_data_for_version(version: u8) -> String {
         let data_codewords = crate::tables::data_codewords(version, CorrectionLevel::High);
-        let max_bytes = (data_codewords * 8 - 4 - 8) / 8;
+        let count_bits = crate::tables::char_count_bits(version, Mode::Byte) as usize;
+        let max_bytes = (data_codewords * 8 - 4 - count_bits) / 8;
 
         (0..max_bytes)
             .map(|index| char::from(b'a' + (index % 26) as u8))
@@ -341,7 +352,15 @@ mod tests {
     }
 
     #[test]
-    fn matches_qrcodegen_for_versions_1_to_6_in_byte_mode() {
+    fn matches_qrcodegen_for_all_versions_in_byte_mode() {
+        for version in 1..=MAX_SUPPORTED_VERSION {
+            let data = byte_data_for_version(version);
+            assert_matches_reference(&data, Mode::Byte, version, CorrectionLevel::High);
+        }
+    }
+
+    #[test]
+    fn matches_qrcodegen_for_all_versions_and_levels_with_mask_0() {
         for version in 1..=MAX_SUPPORTED_VERSION {
             let data = byte_data_for_version(version);
 
@@ -351,14 +370,44 @@ mod tests {
                 CorrectionLevel::Quartile,
                 CorrectionLevel::High,
             ] {
-                assert_matches_reference(&data, Mode::Byte, version, level);
+                assert_matches_reference_mask(&data, Mode::Byte, version, level, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn matches_qrcodegen_for_representative_versions_in_all_modes_and_levels() {
+        let numeric = "1".repeat(150);
+        let alphanumeric = "A".repeat(90);
+
+        for version in [7u8, 10, 27, 40] {
+            let byte_data = byte_data_for_version(version);
+            let cases = [
+                (numeric.as_str(), Mode::Numeric),
+                (alphanumeric.as_str(), Mode::Alphanumeric),
+                (byte_data.as_str(), Mode::Byte),
+            ];
+
+            for (data, mode) in cases {
+                for level in [
+                    CorrectionLevel::Low,
+                    CorrectionLevel::Medium,
+                    CorrectionLevel::Quartile,
+                    CorrectionLevel::High,
+                ] {
+                    assert_matches_reference(data, mode, version, level);
+                }
             }
         }
     }
 
     #[test]
     fn encode_selects_the_smallest_version_that_fits() {
-        let cases = [(7usize, 1u8), (8, 2), (15, 3), (25, 4), (35, 5), (45, 6)];
+        let mut cases = vec![(7usize, 1u8), (8, 2), (15, 3), (25, 4), (35, 5), (45, 6)];
+
+        for version in [7u8, 10, 20, 40] {
+            cases.push((byte_data_for_version(version).len(), version));
+        }
 
         for (length, expected_version) in cases {
             let data = "a".repeat(length);
@@ -371,7 +420,7 @@ mod tests {
             );
         }
 
-        let too_long = "a".repeat(59);
+        let too_long = "a".repeat(byte_data_for_version(40).len() + 1);
         assert!(matches!(
             QrCode::encode(&too_long, CorrectionLevel::High),
             Err(QrError::DataTooLong { .. })
@@ -401,6 +450,18 @@ mod tests {
     }
 
     #[test]
+    fn version_40_matrix_is_177_by_177() {
+        let data = byte_data_for_version(40);
+        let qr = QrCode::encode_version(&data, 40, CorrectionLevel::High).unwrap();
+        let matrix = qr.to_matrix();
+
+        assert_eq!(qr.version(), 40);
+        assert_eq!(matrix.len(), 177);
+        assert!(matrix.iter().all(|row| row.len() == 177));
+        assert!(matrix.iter().flatten().all(|&bit| bit == 0 || bit == 1));
+    }
+
+    #[test]
     fn rejects_out_of_range_versions() {
         assert_eq!(
             QrCode::encode_version("A", 0, CorrectionLevel::Low),
@@ -409,14 +470,6 @@ mod tests {
         assert_eq!(
             QrCode::encode_version("A", 41, CorrectionLevel::Low),
             Err(QrError::InvalidVersion(41))
-        );
-    }
-
-    #[test]
-    fn rejects_valid_but_unimplemented_versions() {
-        assert_eq!(
-            QrCode::encode_version("A", 7, CorrectionLevel::Low),
-            Err(QrError::UnsupportedVersion(7))
         );
     }
 

@@ -111,14 +111,9 @@ fn data_bit_count(data: &str, mode: Mode) -> usize {
     }
 }
 
-/// Encodes `data` with one mode, including the mode indicator and character
-/// count indicator.
-pub(crate) fn encode_data(
-    data: &str,
-    mode: Mode,
-    version: u8,
-    level: CorrectionLevel,
-) -> Result<BitBuffer, QrError> {
+/// Number of bits needed by the mode indicator, character count indicator and
+/// encoded data, before terminator and padding.
+pub(crate) fn required_bits(data: &str, mode: Mode, version: u8) -> Result<usize, QrError> {
     match mode {
         Mode::Numeric => validate_numeric(data)?,
         Mode::Alphanumeric => validate_alphanumeric(data)?,
@@ -127,7 +122,19 @@ pub(crate) fn encode_data(
     }
 
     let count_bits = tables::char_count_bits(version, mode) as usize;
-    let needed_bits = 4 + count_bits + data_bit_count(data, mode);
+    Ok(4 + count_bits + data_bit_count(data, mode))
+}
+
+/// Encodes `data` with one mode, including the mode indicator and character
+/// count indicator.
+pub(crate) fn encode_data(
+    data: &str,
+    mode: Mode,
+    version: u8,
+    level: CorrectionLevel,
+) -> Result<BitBuffer, QrError> {
+    let count_bits = tables::char_count_bits(version, mode) as usize;
+    let needed_bits = required_bits(data, mode, version)?;
     let capacity_bits = tables::data_codewords(version, level) * 8;
 
     if needed_bits > capacity_bits {
