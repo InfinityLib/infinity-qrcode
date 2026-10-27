@@ -1,7 +1,5 @@
 /target
-crates/iqrcode-learn-wasm/web/pkg/
 pkg/
-node_modules/
 .ai/
 .agents/skills/
 .ibrain/

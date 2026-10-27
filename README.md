@@ -12,7 +12,7 @@ crates/
   iqrcode-core/       QR core: encoding, ECC, matrix, optional trace
   iqrcode/            std facade + CLI + PNG
   iqrcode-learn/      neutral terminal construction animation
-  iqrcode-learn-wasm/ WebAssembly educational API + web UI with FR/EN i18n
+  iqrcode-learn-wasm/ WebAssembly educational trace API
   iqrcode-wasm/       minimal WASM wrapper for QR generation
 ```
 
@@ -119,9 +119,8 @@ The terminal animation shows the phases and computed values:
 - final format information,
 - complete QR Code.
 
-The terminal is intentionally technical and language-neutral. Explanations,
-formulas and translations live in the web UI
-(`crates/iqrcode-learn-wasm/web`).
+The terminal is intentionally technical and language-neutral. A separate web
+frontend can provide explanations, formulas and translations.
 
 Options:
 
@@ -134,31 +133,21 @@ Options:
 
 ## WASM
 
-Full educational version with a web UI:
+Educational trace bindings:
 
 ```bash
 cd crates/iqrcode-learn-wasm
-wasm-pack build --target web --out-dir web/pkg
-cd web
-python3 -m http.server 8080
+wasm-pack build --target web
 ```
 
-Open <http://localhost:8080>.
-
-The web UI owns its translations:
-
-```text
-crates/iqrcode-learn-wasm/web/i18n/fr.js
-crates/iqrcode-learn-wasm/web/i18n/en.js
-```
-
-A language selector is available on the page. The WASM layer exposes only data
-(phase, matrix, highlight, bit, mask, penalty), not text.
+The generated package is in `crates/iqrcode-learn-wasm/pkg`. The crate exposes
+data only; a separate web frontend will own the UI and translations.
 
 Minimal WASM wrapper:
 
 ```bash
-wasm-pack build crates/iqrcode-wasm --target web
+cd crates/iqrcode-wasm
+wasm-pack build --target web
 ```
 
 ## Tests
@@ -183,7 +172,7 @@ bash scripts/ci.sh
 ```
 
 The script runs formatting, Clippy, the full test suite, the `no_std` build, the
-WASM checks, the web JavaScript syntax checks and `ibrain sync --check`.
+WASM checks and `ibrain sync --check`.
 
 Install the versioned Git hooks once per clone:
 
@@ -203,7 +192,7 @@ data directly through `wasm-bindgen`.
 ## Next steps
 
 - UTF-8 to Shift-JIS conversion for Kanji mode.
-- Web UI polish and HTML/GIF export.
+- Separate web frontend consuming `iqrcode-learn-wasm` and `iqrcode-wasm`.
 - `no_std` validation on an embedded target.
 - Optimizations and benchmarks.
 

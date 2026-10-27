@@ -30,15 +30,6 @@ step "WebAssembly targets"
 cargo check -p iqrcode-learn-wasm --target wasm32-unknown-unknown
 cargo check -p iqrcode-wasm --target wasm32-unknown-unknown
 
-if command -v node >/dev/null 2>&1; then
-    step "Web JavaScript syntax"
-    node --input-type=module --check < crates/iqrcode-learn-wasm/web/app.js
-    node --input-type=module --check < crates/iqrcode-learn-wasm/web/i18n/fr.js
-    node --input-type=module --check < crates/iqrcode-learn-wasm/web/i18n/en.js
-else
-    printf '\n  node is not installed: web JavaScript checks skipped.\n' >&2
-fi
-
 if command -v ibrain >/dev/null 2>&1; then
     step "ibrain synchronization"
     ibrain sync --check

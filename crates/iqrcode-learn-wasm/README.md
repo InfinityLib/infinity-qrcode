@@ -1,22 +1,19 @@
 # iqrcode-learn-wasm
 
-Version WebAssembly de `iqrcode-learn`.
+Bindings WebAssembly pour `iqrcode-learn`.
+
+La crate expose la trace de construction et les valeurs calculées. Elle ne
+contient pas d’interface web ni de traductions : un frontend séparé peut les
+fournir à partir de cette API.
 
 ## Build
 
 ```bash
 cd crates/iqrcode-learn-wasm
-wasm-pack build --target web --out-dir web/pkg
+wasm-pack build --target web
 ```
 
-Puis :
-
-```bash
-cd web
-python3 -m http.server 8080
-```
-
-Ouvrir <http://localhost:8080>.
+Le paquet est généré dans `pkg/`.
 
 ## API JS
 
@@ -40,14 +37,7 @@ frame.free();
 trace.free();
 ```
 
-Les textes et traductions ne sont pas dans le WASM. Ils sont dans :
-
-```text
-web/i18n/fr.js
-web/i18n/en.js
-```
-
-L'UI choisit la langue et associe `frame.phase()` à la bonne explication.
+L’interface et les traductions vivent dans le futur dépôt web, pas ici.
 
 Les objets WASM exportés (`LearnTrace`, `LearnFrame`) doivent être libérés avec
 `free()` quand ils ne servent plus.
