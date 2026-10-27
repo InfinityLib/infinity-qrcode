@@ -26,7 +26,7 @@ struct Options {
 
 fn main() {
     if let Err(message) = run() {
-        eprintln!("Erreur: {message}");
+        eprintln!("Error: {message}");
         process::exit(1);
     }
 }
@@ -44,7 +44,7 @@ fn run() -> Result<(), String> {
 
     if options.info {
         eprintln!(
-            "Version {}, correction {:?}, masque {}",
+            "Version {}, correction {:?}, mask {}",
             qr.version(),
             qr.correction_level(),
             qr.mask()
@@ -77,7 +77,7 @@ fn run() -> Result<(), String> {
             #[cfg(not(feature = "png"))]
             {
                 return Err(
-                    "la sortie PNG nécessite la feature `png` : cargo run -p iqrcode --features png -- ..."
+                    "PNG output requires the `png` feature: cargo run -p iqrcode --features png -- ..."
                         .to_string(),
                 );
             }
@@ -86,14 +86,14 @@ fn run() -> Result<(), String> {
 
     match options.output {
         Some(path) => std::fs::write(&path, bytes)
-            .map_err(|error| format!("impossible d'écrire dans {path}: {error}"))?,
+            .map_err(|error| format!("cannot write to {path}: {error}"))?,
         None => {
             let mut stdout = std::io::stdout();
 
             match stdout.write_all(&bytes) {
                 Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
-                Err(error) => return Err(format!("impossible d'écrire sur stdout: {error}")),
+                Err(error) => return Err(format!("cannot write to stdout: {error}")),
             }
         }
     }
@@ -123,19 +123,19 @@ fn parse_args() -> Result<Options, String> {
             "--level" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--level attend une valeur".to_string())?;
+                    .ok_or_else(|| "--level expects a value".to_string())?;
                 level = parse_level(&value)?;
             }
             "--version" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--version attend une valeur".to_string())?;
+                    .ok_or_else(|| "--version expects a value".to_string())?;
                 let parsed = value
                     .parse::<u8>()
-                    .map_err(|_| format!("version invalide: {value}"))?;
+                    .map_err(|_| format!("invalid version: {value}"))?;
 
                 if !(1..=40).contains(&parsed) {
-                    return Err(format!("version invalide: {parsed} (attendu: 1..=40)"));
+                    return Err(format!("invalid version: {parsed} (expected 1..=40)"));
                 }
 
                 version = Some(parsed);
@@ -143,45 +143,45 @@ fn parse_args() -> Result<Options, String> {
             "--format" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--format attend une valeur".to_string())?;
+                    .ok_or_else(|| "--format expects a value".to_string())?;
                 format = parse_format(&value)?;
             }
             "--scale" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--scale attend une valeur".to_string())?;
+                    .ok_or_else(|| "--scale expects a value".to_string())?;
                 scale = value
                     .parse::<usize>()
-                    .map_err(|_| format!("échelle invalide: {value}"))?;
+                    .map_err(|_| format!("invalid scale: {value}"))?;
 
                 if scale == 0 {
-                    return Err("--scale doit être supérieur ou égal à 1".to_string());
+                    return Err("--scale must be at least 1".to_string());
                 }
             }
             "--quiet-zone" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--quiet-zone attend une valeur".to_string())?;
+                    .ok_or_else(|| "--quiet-zone expects a value".to_string())?;
                 quiet_zone = value
                     .parse::<usize>()
-                    .map_err(|_| format!("quiet zone invalide: {value}"))?;
+                    .map_err(|_| format!("invalid quiet zone: {value}"))?;
             }
             "-o" | "--output" => {
                 output = Some(
                     arguments
                         .next()
-                        .ok_or_else(|| "--output attend un chemin".to_string())?,
+                        .ok_or_else(|| "--output expects a path".to_string())?,
                 );
             }
             "--bits" => format = Format::Bits,
             "--info" => info = true,
             "--utf8-eci" => utf8_eci = true,
             _ if argument.starts_with('-') => {
-                return Err(format!("option inconnue: {argument}"));
+                return Err(format!("unknown option: {argument}"));
             }
             _ => {
                 if data.is_some() {
-                    return Err("un seul argument de données est autorisé".to_string());
+                    return Err("only one data argument is allowed".to_string());
                 }
                 data = Some(argument);
             }
@@ -207,7 +207,7 @@ fn parse_level(value: &str) -> Result<CorrectionLevel, String> {
         "m" | "medium" => Ok(CorrectionLevel::Medium),
         "q" | "quartile" => Ok(CorrectionLevel::Quartile),
         "h" | "high" => Ok(CorrectionLevel::High),
-        _ => Err(format!("niveau de correction invalide: {value}")),
+        _ => Err(format!("invalid correction level: {value}")),
     }
 }
 
@@ -218,36 +218,36 @@ fn parse_format(value: &str) -> Result<Format, String> {
         "pbm" => Ok(Format::Pbm),
         "svg" => Ok(Format::Svg),
         "png" => Ok(Format::Png),
-        _ => Err(format!("format invalide: {value}")),
+        _ => Err(format!("invalid format: {value}")),
     }
 }
 
 fn print_help() {
     println!(
-        r#"Générateur de QR Code
+        r#"QR Code generator
 
-Usage :
+Usage:
   iqrcode [DATA] [OPTIONS]
 
-Options :
-  --level <low|medium|quartile|high>   Niveau de correction (défaut : medium)
-  --version <1..40>                    Force une version (défaut : automatique)
-  --format <ascii|bits|pbm|svg|png>    Format de sortie (défaut : ascii)
-  --scale <n>                          Taille d'un module pour SVG/PNG (défaut : 8)
-  --quiet-zone <n>                     Quiet zone en modules (défaut : 4)
-  -o, --output <chemin>                Écrit dans un fichier
-  --bits                               Raccourci pour --format bits
-  --info                               Affiche la version, le niveau et le masque sur stderr
-  --utf8-eci                           Ajoute un designateur ECI 26 (UTF-8)
-  -h, --help                           Affiche cette aide
+Options:
+  --level <low|medium|quartile|high>   Correction level (default: medium)
+  --version <1..40>                    Force a version (default: automatic)
+  --format <ascii|bits|pbm|svg|png>    Output format (default: ascii)
+  --scale <n>                          Module size for SVG/PNG (default: 8)
+  --quiet-zone <n>                     Quiet zone in modules (default: 4)
+  -o, --output <path>                  Write to a file
+  --bits                               Shortcut for --format bits
+  --info                               Print version, level and mask to stderr
+  --utf8-eci                           Add an ECI 26 (UTF-8) designator
+  -h, --help                           Show this help
 
-Exemples :
+Examples:
   iqrcode "HELLO WORLD"
   iqrcode "HELLO WORLD" --format bits
   iqrcode "HELLO WORLD" --format svg -o hello.svg
   cargo run -p iqrcode --features png -- "HELLO WORLD" --format png -o hello.png
 
-Pour l'animation pédagogique :
+For the educational animation:
   cargo run -p iqrcode-learn -- "HELLO WORLD" --animate
 "#
     );

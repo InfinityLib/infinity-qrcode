@@ -19,7 +19,7 @@ struct Options {
 
 fn main() {
     if let Err(message) = run() {
-        eprintln!("Erreur: {message}");
+        eprintln!("Error: {message}");
         process::exit(1);
     }
 }
@@ -69,19 +69,19 @@ fn parse_args() -> Result<Options, String> {
             "--level" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--level attend une valeur".to_string())?;
+                    .ok_or_else(|| "--level expects a value".to_string())?;
                 level = parse_level(&value)?;
             }
             "--version" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--version attend une valeur".to_string())?;
+                    .ok_or_else(|| "--version expects a value".to_string())?;
                 let parsed = value
                     .parse::<u8>()
-                    .map_err(|_| format!("version invalide: {value}"))?;
+                    .map_err(|_| format!("invalid version: {value}"))?;
 
                 if !(1..=40).contains(&parsed) {
-                    return Err(format!("version invalide: {parsed} (attendu: 1..=40)"));
+                    return Err(format!("invalid version: {parsed} (expected 1..=40)"));
                 }
 
                 version = Some(parsed);
@@ -89,52 +89,52 @@ fn parse_args() -> Result<Options, String> {
             "--fps" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--fps attend une valeur".to_string())?;
+                    .ok_or_else(|| "--fps expects a value".to_string())?;
                 fps = value
                     .parse::<u64>()
-                    .map_err(|_| format!("fps invalide: {value}"))?;
+                    .map_err(|_| format!("invalid fps: {value}"))?;
 
                 if fps == 0 {
-                    return Err("--fps doit être supérieur ou égal à 1".to_string());
+                    return Err("--fps must be at least 1".to_string());
                 }
             }
             "--stride" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--stride attend une valeur".to_string())?;
+                    .ok_or_else(|| "--stride expects a value".to_string())?;
                 stride = value
                     .parse::<usize>()
-                    .map_err(|_| format!("stride invalide: {value}"))?;
+                    .map_err(|_| format!("invalid stride: {value}"))?;
             }
             "--max-frames" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--max-frames attend une valeur".to_string())?;
+                    .ok_or_else(|| "--max-frames expects a value".to_string())?;
                 max_frames = value
                     .parse::<usize>()
-                    .map_err(|_| format!("max-frames invalide: {value}"))?;
+                    .map_err(|_| format!("invalid max-frames: {value}"))?;
 
                 if max_frames == 0 {
-                    return Err("--max-frames doit être supérieur ou égal à 1".to_string());
+                    return Err("--max-frames must be at least 1".to_string());
                 }
             }
             "--quiet-zone" => {
                 let value = arguments
                     .next()
-                    .ok_or_else(|| "--quiet-zone attend une valeur".to_string())?;
+                    .ok_or_else(|| "--quiet-zone expects a value".to_string())?;
                 quiet_zone = value
                     .parse::<usize>()
-                    .map_err(|_| format!("quiet zone invalide: {value}"))?;
+                    .map_err(|_| format!("invalid quiet zone: {value}"))?;
             }
             "--no-color" => no_color = true,
             "--no-mask-candidates" => show_mask_candidates = false,
             "--animate" => {}
             _ if argument.starts_with('-') => {
-                return Err(format!("option inconnue: {argument}"));
+                return Err(format!("unknown option: {argument}"));
             }
             _ => {
                 if data.is_some() {
-                    return Err("un seul argument de données est autorisé".to_string());
+                    return Err("only one data argument is allowed".to_string());
                 }
                 data = Some(argument);
             }
@@ -160,32 +160,32 @@ fn parse_level(value: &str) -> Result<CorrectionLevel, String> {
         "m" | "medium" => Ok(CorrectionLevel::Medium),
         "q" | "quartile" => Ok(CorrectionLevel::Quartile),
         "h" | "high" => Ok(CorrectionLevel::High),
-        _ => Err(format!("niveau de correction invalide: {value}")),
+        _ => Err(format!("invalid correction level: {value}")),
     }
 }
 
 fn print_help() {
     println!(
-        r#"iqrcode-learn — animation pédagogique d'un QR Code
+        r#"iqrcode-learn — step-by-step QR Code animation
 
-Usage :
+Usage:
   iqrcode-learn [DATA] [OPTIONS]
 
-Options :
-  --level <low|medium|quartile|high>   Niveau de correction (défaut : medium)
-  --version <1..40>                    Force une version (défaut : automatique)
-  --fps <n>                            Images par seconde (défaut : 20)
-  --stride <n>                         Une frame de données toutes les n modules (0 = auto)
-  --max-frames <n>                     Maximum de frames de données (défaut : 300)
-  --quiet-zone <n>                     Quiet zone en modules (défaut : 4)
-  --no-color                           Désactive les couleurs ANSI
-  --no-mask-candidates                 Ne montre pas les 8 masques candidats
-  -h, --help                           Affiche cette aide
+Options:
+  --level <low|medium|quartile|high>   Correction level (default: medium)
+  --version <1..40>                    Force a version (default: automatic)
+  --fps <n>                            Frames per second (default: 20)
+  --stride <n>                         One data frame every n modules (0 = auto)
+  --max-frames <n>                     Maximum number of data frames (default: 300)
+  --quiet-zone <n>                     Quiet zone in modules (default: 4)
+  --no-color                           Disable ANSI colors
+  --no-mask-candidates                 Hide the eight mask candidates
+  -h, --help                           Show this help
 
-Remarque : les explications et les formules sont dans l'UI web
-(`crates/iqrcode-learn-wasm/web`). Le terminal montre les phases et les valeurs.
+Note: explanations and formulas live in the web UI
+(`crates/iqrcode-learn-wasm/web`). The terminal shows phases and values.
 
-Exemples :
+Examples:
   iqrcode-learn "HELLO WORLD" --animate
   iqrcode-learn "HELLO WORLD" --animate --version 4 --fps 20
 "#
