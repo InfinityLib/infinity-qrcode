@@ -5,3 +5,12 @@ version = 4
 [[package]]
 name = "infinitylib-qrcode-rs"
 version = "0.1.0"
+dependencies = [
+ "reed-solomon",
+]
+
+[[package]]
+name = "reed-solomon"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ae8cfc9e49a20b77bef3a3467a85ce92524c7ef9f034dbdbeac0f89b71f51e9"
