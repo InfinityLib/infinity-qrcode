@@ -11,10 +11,11 @@ décodables par un lecteur standard.
 - Niveaux de correction `Low`, `Medium`, `Quartile` et `High`.
 - Reed-Solomon, blocs ECC, interleaving, alignment patterns, version
   information, placement des données, masques et format information, sans
-  dépendance runtime.
+  dépendance runtime (hors feature `png`).
 - Sélection automatique de la plus petite version qui contient les données.
 - Sortie sous forme de matrice `Vec<Vec<u8>>` avec des `0` et des `1`.
-- Rendu ASCII avec quiet zone.
+- Sorties ASCII, PBM, SVG et PNG (feature `png`).
+- Quiet zone configurable.
 
 ## Utilisation
 
@@ -42,17 +43,41 @@ Pour un affichage lisible directement dans le terminal :
 println!("{}", qr.to_ascii());
 ```
 
+Les autres formats sont disponibles directement sur `QrCode` :
+
+```rust
+let pbm = qr.to_pbm(4);
+let svg = qr.to_svg(8, 4); // taille d'un module, quiet zone
+
+#[cfg(feature = "png")]
+let png: Vec<u8> = qr.to_png(8, 4).unwrap();
+```
+
 ## Démo
 
 ```bash
 cargo run -- "HELLO WORLD"
-cargo run -- "HELLO WORLD" --bits
+cargo run -- "HELLO WORLD" --format bits
+cargo run -- "HELLO WORLD" --format pbm -o hello.pbm
+cargo run -- "HELLO WORLD" --format svg --scale 8 -o hello.svg
+cargo run --features png -- "HELLO WORLD" --format png -o hello.png
 ```
+
+Options principales :
+
+- `--level <low|medium|quartile|high>`
+- `--version <1..40>`
+- `--format <ascii|bits|pbm|svg|png>`
+- `--scale <n>`
+- `--quiet-zone <n>`
+- `-o, --output <chemin>`
+- `--bits`, `--info`, `--help`
 
 ## Tests
 
 ```bash
 cargo test
+cargo test --all-features
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
@@ -62,6 +87,5 @@ de correction, puis décodent les QR générés avec `rqrr`.
 
 ## Prochaines étapes
 
-- Sorties PBM, SVG et PNG.
 - Mode Kanji, ECI/UTF-8 et segmentation multi-modes.
 - Optimisations et support `no_std`.

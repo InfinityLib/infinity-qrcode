@@ -5,6 +5,9 @@
 //! error correction levels, automatic version selection, block interleaving,
 //! alignment patterns and version information.
 //!
+//! Outputs are available as a `Vec<Vec<u8>>` matrix, ASCII, PBM and SVG, plus
+//! PNG when the `png` feature is enabled.
+//!
 //! ```
 //! use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};
 //!
@@ -20,6 +23,7 @@
 mod bits;
 mod gf256;
 mod matrix;
+mod output;
 mod reed_solomon;
 mod tables;
 

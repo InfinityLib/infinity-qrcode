@@ -3,7 +3,12 @@ name = "infinitylib-qrcode-rs"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+png = ["dep:png"]
+
 [dependencies]
+png = { version = "0.18", optional = true }
 
 [dev-dependencies]
 qrcodegen = "1.8"

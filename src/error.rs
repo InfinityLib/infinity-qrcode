@@ -20,6 +20,8 @@ pub enum QrError {
     UnsupportedMode(Mode),
     /// The mask number is outside the valid range `0..=7`.
     InvalidMask(u8),
+    /// PNG encoding failed.
+    PngEncoding(String),
 }
 
 impl fmt::Display for QrError {
@@ -49,6 +51,9 @@ impl fmt::Display for QrError {
             }
             Self::InvalidMask(mask) => {
                 write!(f, "invalid QR mask {mask}; expected 0..=7")
+            }
+            Self::PngEncoding(message) => {
+                write!(f, "PNG encoding failed: {message}")
             }
         }
     }

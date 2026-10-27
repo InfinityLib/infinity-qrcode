@@ -206,41 +206,7 @@ impl QrCode {
 
     /// Renders the QR Code as text, with a four-module quiet zone.
     pub fn to_ascii(&self) -> String {
-        const QUIET_ZONE: usize = 4;
-
-        let width = self.size() + 2 * QUIET_ZONE;
-        let mut output = String::with_capacity((width * 2 + 1) * (width + 2 * QUIET_ZONE));
-
-        for _ in 0..QUIET_ZONE {
-            for _ in 0..width {
-                output.push_str("  ");
-            }
-            output.push('\n');
-        }
-
-        for row in &self.modules {
-            for _ in 0..QUIET_ZONE {
-                output.push_str("  ");
-            }
-
-            for &module in row {
-                output.push_str(if module == 1 { "██" } else { "  " });
-            }
-
-            for _ in 0..QUIET_ZONE {
-                output.push_str("  ");
-            }
-            output.push('\n');
-        }
-
-        for _ in 0..QUIET_ZONE {
-            for _ in 0..width {
-                output.push_str("  ");
-            }
-            output.push('\n');
-        }
-
-        output
+        self.to_ascii_with_quiet_zone(4)
     }
 }
 
