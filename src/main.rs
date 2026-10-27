@@ -206,7 +206,7 @@ fn render_frame(
 
     let size = frame.modules.len();
     let highlight = build_highlight_mask(size, &frame.highlight);
-    let width = size + 2 * quiet_zone;
+    let width = (size + 2 * quiet_zone) * 2;
     let mut output = String::new();
 
     for _ in 0..quiet_zone {
@@ -261,12 +261,12 @@ fn push_rendered_row(
     quiet_zone: usize,
     use_color: bool,
 ) {
-    let width = row.len() + 2 * quiet_zone;
+    let module_count = row.len() + 2 * quiet_zone;
 
     if use_color {
         let mut current = None;
 
-        for index in 0..width {
+        for index in 0..module_count {
             let color = if index < quiet_zone || index >= quiet_zone + row.len() {
                 CellColor::Light
             } else {
@@ -286,24 +286,25 @@ fn push_rendered_row(
                 current = Some(color);
             }
 
-            output.push(' ');
+            // Two terminal cells per module keep the QR Code roughly square.
+            output.push_str("  ");
         }
 
         output.push_str("\x1b[0m\n");
     } else {
-        output.push_str(&" ".repeat(quiet_zone));
+        output.push_str(&"  ".repeat(quiet_zone));
 
         for (x, &module) in row.iter().enumerate() {
-            output.push(if highlight[x] {
-                '*'
+            output.push_str(if highlight[x] {
+                "▓▓"
             } else if module == 1 {
-                '█'
+                "██"
             } else {
-                ' '
+                "  "
             });
         }
 
-        output.push_str(&" ".repeat(quiet_zone));
+        output.push_str(&"  ".repeat(quiet_zone));
         output.push('\n');
     }
 }
