@@ -9,7 +9,7 @@ Guidelines for AI agents (and contributors) working on this repository.
 - `iqrcode-core`: `no_std + alloc` encoding, matrix construction and trace,
 - `iqrcode`: std facade, CLI and optional PNG output,
 - `iqrcode-learn`: language-neutral terminal construction animation,
-- `iqrcode-learn-wasm`: WebAssembly trace API and web UI,
+- `iqrcode-learn-wasm`: WebAssembly trace API,
 - `iqrcode-wasm`: minimal WebAssembly wrapper.
 
 ## Project language
@@ -30,9 +30,9 @@ rewriting it. Keep the index in `docs/decisions/README.md` up to date.
 ## Workspace layout
 
 - Keep the core free of `std` and external runtime dependencies by default.
-- Keep `iqrcode-core` independent from the CLI, terminal rendering and web UI.
-- Put presentation text and translations in the web UI (`web/i18n/`), not in
-  the core or the learn crate.
+- Keep `iqrcode-core` independent from the CLI, terminal rendering and web frontend.
+- Put presentation text and translations out of the core and the learn crate;
+  a separate web frontend will own them.
 - Keep optional features explicit: `std`, `trace`, `png`, `cli`, `full`.
 
 ## Code conventions
@@ -52,7 +52,7 @@ bash scripts/ci.sh
 ```
 
 It runs the full workspace tests, Clippy, formatting, the `no_std` build, the
-WASM checks, the web JavaScript syntax checks and `ibrain sync --check`.
+WASM checks and `ibrain sync --check`.
 
 The QR encoder is validated against `qrcodegen` (matrix comparison) and `rqrr`
 (decoding generated QR Codes). Add positive and negative cases for capacity,
