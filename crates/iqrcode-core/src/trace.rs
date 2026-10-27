@@ -1,5 +1,10 @@
 //! Step-by-step construction trace, used by the terminal animation.
 
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::bits::{self, Segment};
 use crate::error::QrError;
 use crate::matrix::{self, Matrix};

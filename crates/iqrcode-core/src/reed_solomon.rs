@@ -1,5 +1,8 @@
 //! Reed-Solomon encoding over GF(256), as used by QR Codes.
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::gf256;
 
 /// Builds the generator polynomial `∏(x - α^i)` for `i in 0..ecc_len`.

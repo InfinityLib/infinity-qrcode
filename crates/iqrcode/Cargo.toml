@@ -1,0 +1,21 @@
+[package]
+name = "iqrcode"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["cli"]
+cli = []
+png = ["iqrcode-core/png"]
+full = ["cli", "png"]
+
+[[bin]]
+name = "iqrcode"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[dependencies]
+iqrcode-core = { path = "../iqrcode-core", features = ["std"] }
+
+[dev-dependencies]
+rqrr = { version = "0.11", default-features = false }

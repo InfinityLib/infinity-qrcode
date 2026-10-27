@@ -1,0 +1,11 @@
+[package]
+name = "iqrcode-learn"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "iqrcode-learn"
+path = "src/bin/iqrcode-learn.rs"
+
+[dependencies]
+iqrcode-core = { path = "../iqrcode-core", features = ["std", "trace"] }

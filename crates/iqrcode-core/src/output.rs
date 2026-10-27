@@ -1,6 +1,15 @@
 //! Output formats for a generated QR Code.
 
-use std::fmt::Write as _;
+use core::fmt::Write as _;
+
+use alloc::string::String;
+
+#[cfg(feature = "png")]
+use alloc::string::ToString;
+#[cfg(feature = "png")]
+use alloc::vec;
+#[cfg(feature = "png")]
+use alloc::vec::Vec;
 
 use crate::qr::QrCode;
 

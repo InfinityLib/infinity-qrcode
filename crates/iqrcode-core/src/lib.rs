@@ -1,4 +1,4 @@
-//! A small QR Code generator written in Rust.
+//! Core QR Code generator.
 //!
 //! The current implementation supports QR Code versions 1 to 40 (21×21 to
 //! 177×177 modules), with the Numeric, Alphanumeric, Byte and Kanji modes, all
@@ -13,11 +13,11 @@
 //! Outputs are available as a `Vec<Vec<u8>>` matrix, ASCII, PBM and SVG, plus
 //! PNG when the `png` feature is enabled.
 //!
-//! The [`trace`] module can record every construction step, which is used by
-//! the terminal animation (`--animate`).
+//! The `trace` feature enables the [`trace`] module, which records every
+//! construction step for educational tools and animations.
 //!
 //! ```
-//! use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};
+//! use iqrcode_core::{CorrectionLevel, QrCode};
 //!
 //! let qr = QrCode::encode("HELLO WORLD", CorrectionLevel::Medium).unwrap();
 //! let matrix = qr.to_matrix();
@@ -26,7 +26,13 @@
 //! assert!(matrix.iter().flatten().all(|&bit| bit == 0 || bit == 1));
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
+
+extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
 
 mod bits;
 mod gf256;
@@ -38,6 +44,8 @@ mod tables;
 
 pub mod error;
 pub mod qr;
+
+#[cfg(feature = "trace")]
 pub mod trace;
 
 pub use error::QrError;

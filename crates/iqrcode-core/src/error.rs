@@ -1,5 +1,7 @@
 use core::fmt;
 
+use alloc::string::String;
+
 use crate::qr::{CorrectionLevel, Mode};
 
 /// Errors returned while building a QR Code.
@@ -34,7 +36,7 @@ pub enum QrError {
     PngEncoding(String),
 }
 
-impl fmt::Display for QrError {
+impl core::fmt::Display for QrError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidVersion(version) => {
@@ -88,4 +90,5 @@ impl fmt::Display for QrError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for QrError {}

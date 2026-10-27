@@ -1,5 +1,8 @@
 use core::fmt;
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::bits::{self, Segment};
 use crate::error::QrError;
 use crate::matrix::{self, Matrix};
@@ -89,6 +92,7 @@ pub(crate) const MAX_SUPPORTED_VERSION: u8 = 40;
 const VERSION_GROUPS: [(u8, u8); 3] = [(1, 9), (10, 26), (27, 40)];
 
 /// Data codewords, ECC codewords and interleaved codewords for one QR Code.
+#[cfg_attr(not(feature = "trace"), allow(dead_code))]
 pub(crate) struct EncodedData {
     pub(crate) data_codewords: Vec<u8>,
     pub(crate) ecc_len: usize,
@@ -382,6 +386,9 @@ impl fmt::Display for QrCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format;
+    use alloc::string::String;
+    use alloc::vec;
     use qrcodegen::{Mask, QrCode as ReferenceQrCode, QrCodeEcc, QrSegment, Version};
 
     fn reference_ecc(level: CorrectionLevel) -> QrCodeEcc {

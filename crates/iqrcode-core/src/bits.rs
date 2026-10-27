@@ -1,5 +1,8 @@
 //! Bit-level encoding of QR Code segments.
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::error::QrError;
 use crate::qr::{CorrectionLevel, Mode};
 use crate::tables;

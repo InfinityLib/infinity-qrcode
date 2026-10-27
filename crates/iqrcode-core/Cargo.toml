@@ -1,0 +1,16 @@
+[package]
+name = "iqrcode-core"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+std = []
+trace = []
+png = ["std", "dep:png"]
+
+[dependencies]
+png = { version = "0.18", optional = true }
+
+[dev-dependencies]
+qrcodegen = "1.8"

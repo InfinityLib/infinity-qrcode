@@ -1,5 +1,8 @@
 //! Dynamic-programming segmentation for mixed-mode QR Codes.
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::bits::{Segment, is_alphanumeric_byte, is_numeric_byte, segment_bits_unchecked};
 use crate::qr::Mode;
 use crate::tables;

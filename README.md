@@ -1,29 +1,54 @@
-# infinitylib-qrcode-rs
+# iqrcode
 
-Générateur de QR Code en Rust.
+Générateur de QR Code en Rust, avec un cœur `no_std`, une CLI, une version
+pédagogique et une version WebAssembly.
 
-## État actuel
+## Architecture
 
-Le projet génère de vrais QR Codes **versions 1 à 40 (21×21 à 177×177)**,
-décodables par un lecteur standard.
+```text
+crates/
+  iqrcode-core/       cœur QR : encodage, ECC, matrice, trace optionnelle
+  iqrcode/            façade std + CLI + PNG
+  iqrcode-learn/      animation terminale et explications
+  iqrcode-learn-wasm/ version WebAssembly de l'outil pédagogique + UI web
+  iqrcode-wasm/       wrapper WASM minimal pour générer un QR
+```
 
-- Modes Numeric, Alphanumeric, Byte et Kanji (Shift-JIS brut).
-- Segmentation multi-modes automatique pour réduire la taille.
-- ECI 26 / UTF-8 explicite.
-- Niveaux de correction `Low`, `Medium`, `Quartile` et `High`.
-- Reed-Solomon, blocs ECC, interleaving, alignment patterns, version
-  information, placement des données, masques et format information, sans
-  dépendance runtime (hors feature `png`).
-- Sélection automatique de la plus petite version qui contient les données.
-- Sortie sous forme de matrice `Vec<Vec<u8>>` avec des `0` et des `1`.
-- Sorties ASCII, PBM, SVG et PNG (feature `png`).
-- Animation terminale pas à pas de la construction.
-- Quiet zone configurable.
+Le cœur ne dépend pas de `std` par défaut : il utilise `alloc`.
+
+## Version minimale
+
+```bash
+cargo build -p iqrcode-core --no-default-features
+```
+
+Le cœur expose :
+
+- l'encodage Numeric / Alphanumeric / Byte / Kanji,
+- la segmentation multi-modes,
+- Reed-Solomon et l'entrelacement,
+- les versions 1 à 40,
+- les sorties ASCII, PBM et SVG.
+
+Sans feature, il n'y a ni CLI, ni PNG, ni animation.
+
+## Version complète
+
+```bash
+cargo build -p iqrcode --features full
+```
+
+Features :
+
+- `iqrcode-core` : `std`, `trace`, `png` (PNG implique `std`).
+- `iqrcode` : `cli` (activée par défaut), `png`, `full`.
+
+Le build par défaut de `iqrcode` active `cli`.
 
 ## Utilisation
 
 ```rust
-use infinitylib_qrcode_rs::{CorrectionLevel, QrCode};
+use iqrcode::{CorrectionLevel, QrCode};
 
 let qr = QrCode::encode("HELLO WORLD", CorrectionLevel::Medium).unwrap();
 let matrix = qr.to_matrix();
@@ -37,46 +62,25 @@ for row in &matrix {
 }
 ```
 
-La matrice renvoyée ne contient pas de quiet zone : `1` représente un module
-noir et `0` un module blanc.
-
-Pour un affichage lisible directement dans le terminal :
-
-```rust
-println!("{}", qr.to_ascii());
-```
-
-Les autres formats sont disponibles directement sur `QrCode` :
+Autres sorties :
 
 ```rust
 let pbm = qr.to_pbm(4);
-let svg = qr.to_svg(8, 4); // taille d'un module, quiet zone
+let svg = qr.to_svg(8, 4);
 
 #[cfg(feature = "png")]
-let png: Vec<u8> = qr.to_png(8, 4).unwrap();
+let png = qr.to_png(8, 4).unwrap();
 ```
 
-Pour indiquer explicitement que les données sont de l'UTF-8 :
-
-```rust
-let qr = QrCode::encode_utf8("Héllo, wörld !", CorrectionLevel::Medium)?;
-```
-
-Pour le mode Kanji, l'API attend des octets Shift-JIS bruts :
-
-```rust
-let qr = QrCode::encode_kanji_shift_jis(b"\x93\x5f\xe4\xaa", CorrectionLevel::Low)?;
-```
-
-## Démo
+## CLI
 
 ```bash
-cargo run -- "HELLO WORLD"
-cargo run -- "HELLO WORLD" --format bits
-cargo run -- "HELLO WORLD" --format pbm -o hello.pbm
-cargo run -- "HELLO WORLD" --format svg --scale 8 -o hello.svg
-cargo run -- "Héllo" --utf8-eci
-cargo run --features png -- "HELLO WORLD" --format png -o hello.png
+cargo run -p iqrcode -- "HELLO WORLD"
+cargo run -p iqrcode -- "HELLO WORLD" --format bits
+cargo run -p iqrcode -- "HELLO WORLD" --format pbm -o hello.pbm
+cargo run -p iqrcode -- "HELLO WORLD" --format svg --scale 8 -o hello.svg
+cargo run -p iqrcode --features png -- "HELLO WORLD" --format png -o hello.png
+cargo run -p iqrcode -- "Héllo" --utf8-eci
 ```
 
 Options principales :
@@ -87,43 +91,87 @@ Options principales :
 - `--scale <n>`
 - `--quiet-zone <n>`
 - `-o, --output <chemin>`
-- `--bits`, `--info`, `--utf8-eci`, `--help`
+- `--bits`, `--info`, `--utf8-eci`
 
-## Animation terminale
-
-L’animation montre la vraie construction du QR Code, étape par étape :
+## Animation pédagogique
 
 ```bash
-cargo run -- "HELLO WORLD" --animate
-cargo run -- "HELLO WORLD" --animate --version 4 --fps 20
-cargo run -- "HELLO WORLD" --animate --no-color --no-mask-candidates
+cargo run -p iqrcode-learn -- "HELLO WORLD" --animate
+cargo run -p iqrcode-learn -- "HELLO WORLD" --animate --version 4 --fps 20
+cargo run -p iqrcode-learn -- "HELLO WORLD" --no-lessons --no-color
+cargo run -p iqrcode-learn -- --list-lessons
 ```
 
-Options dédiées :
+L'animation montre :
 
-- `--animate`
-- `--fps <n>` : images par seconde (défaut : 20)
-- `--stride <n>` : une frame de données tous les `n` modules
-- `--max-frames <n>` : limite le nombre de frames de données
+- la matrice vide,
+- les finder patterns et séparateurs,
+- les timing patterns,
+- les alignment patterns,
+- la version information,
+- la format information réservée,
+- le placement des données en zigzag,
+- les 8 masques candidats et leurs scores,
+- le masque retenu,
+- la format information finale,
+- le QR Code complet.
+
+Chaque phase est accompagnée d'une explication et, quand c'est pertinent, de sa
+formule. La dernière frame correspond exactement à `to_matrix()`.
+
+Options :
+
+- `--fps <n>` (défaut : 20)
+- `--stride <n>` (0 = auto)
+- `--max-frames <n>`
+- `--quiet-zone <n>`
 - `--no-color`
 - `--no-mask-candidates`
+- `--no-lessons`
+- `--list-lessons`
 
-La dernière frame est exactement la matrice renvoyée par `to_matrix()`.
+## WASM
+
+Version pédagogique complète avec UI web :
+
+```bash
+cd crates/iqrcode-learn-wasm
+wasm-pack build --target web --out-dir web/pkg
+cd web
+python3 -m http.server 8080
+```
+
+Ouvrir <http://localhost:8080>.
+
+Wrapper WASM minimal :
+
+```bash
+wasm-pack build crates/iqrcode-wasm --target web
+```
 
 ## Tests
 
 ```bash
-cargo test
-cargo test --all-features
-cargo clippy --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
+cargo test -p iqrcode-core --features trace
+cargo check -p iqrcode-core --no-default-features
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo fmt --check
 ```
 
-Les tests unitaires vérifient les vecteurs connus du standard, comparent les
-matrices à `qrcodegen` pour les versions 1 à 40, les 8 masques et les 4 niveaux
-de correction, puis décodent les QR générés avec `rqrr`.
+Les tests comparent les matrices à `qrcodegen` pour les versions 1 à 40, les
+8 masques et les 4 niveaux de correction, puis décodent les QR générés avec
+`rqrr`.
+
+## Serde
+
+Serde n'est pas utilisé pour l'instant. Il ne sera ajouté que si on veut
+exporter les frames en JSON, par exemple pour un autre lecteur web. Le WASM
+actuel expose directement les données via `wasm-bindgen`.
 
 ## Prochaines étapes
 
 - Conversion UTF-8 vers Shift-JIS pour le mode Kanji.
-- Export HTML ou GIF à partir de la même trace.
-- Optimisations et support `no_std`.
+- Peaufinage de l'UI web et export HTML/GIF.
+- Validation `no_std` sur une cible embarquée.
+- Optimisations et benchmarks.

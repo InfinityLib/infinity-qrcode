@@ -1,4 +1,4 @@
-use infinitylib_qrcode_rs::{CorrectionLevel, Mode, QrCode};
+use iqrcode::{CorrectionLevel, Mode, QrCode};
 
 /// Renders the matrix as a high-contrast greyscale image and decodes it with
 /// `rqrr`. This catches real-world scanning problems that matrix comparison

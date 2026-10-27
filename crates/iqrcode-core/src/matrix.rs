@@ -1,5 +1,8 @@
 //! QR Code matrix construction: function patterns, data placement and masks.
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::error::QrError;
 use crate::qr::CorrectionLevel;
 
@@ -176,6 +179,7 @@ impl Matrix {
         self.set_function(8, self.size - 8, 1);
     }
 
+    #[cfg(feature = "trace")]
     pub(crate) fn snapshot(&self) -> Vec<Vec<u8>> {
         self.modules.clone()
     }
@@ -435,6 +439,7 @@ pub(crate) fn version_info_bits(version: u8) -> u32 {
 }
 
 /// Returns the coordinates of the two copies of the format information.
+#[cfg(feature = "trace")]
 pub(crate) fn format_info_positions(size: usize) -> Vec<(usize, usize)> {
     let mut positions = Vec::with_capacity(30);
 
