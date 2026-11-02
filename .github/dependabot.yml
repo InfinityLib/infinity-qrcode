@@ -1,0 +1,19 @@
+# Dependency updates, proposed as pull requests against develop.
+# Updates the Cargo lockfile and the pinned SHAs in .github/workflows/.
+
+version: 2
+
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
