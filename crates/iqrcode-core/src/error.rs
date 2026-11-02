@@ -5,15 +5,20 @@ use alloc::string::String;
 use crate::qr::{CorrectionLevel, Mode};
 
 /// Errors returned while building a QR Code.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QrError {
     /// The version is outside the valid range `1..=40`.
     InvalidVersion(u8),
     /// The data does not fit in the selected version and correction level.
     DataTooLong {
+        /// Version that was attempted.
         version: u8,
+        /// Correction level used for the attempt.
         level: CorrectionLevel,
+        /// Number of bits required by the data.
         needed_bits: usize,
+        /// Number of bits available in the selected version and level.
         capacity_bits: usize,
     },
     /// A character cannot be represented in the selected mode.
@@ -26,8 +31,11 @@ pub enum QrError {
     InvalidEciDesignator(u32),
     /// A segment exceeds the capacity of its character count indicator.
     CharacterCountOverflow {
+        /// Mode of the oversized segment.
         mode: Mode,
+        /// Version whose count indicator is too small.
         version: u8,
+        /// Number of characters in the segment.
         count: usize,
     },
     /// The mask number is outside the valid range `0..=7`.

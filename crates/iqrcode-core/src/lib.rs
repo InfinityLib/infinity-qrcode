@@ -28,6 +28,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 extern crate alloc;
 
@@ -42,9 +43,12 @@ mod output;
 mod reed_solomon;
 mod tables;
 
+/// Error types returned by the encoder.
 pub mod error;
+/// QR Code types and encoding entry points.
 pub mod qr;
 
+/// Construction trace, enabled by the `trace` feature.
 #[cfg(feature = "trace")]
 pub mod trace;
 

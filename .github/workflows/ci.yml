@@ -1,0 +1,51 @@
+# Continuous integration: the same checks as scripts/ci.sh, run on GitHub.
+# The local script stays the source of truth; keep both in sync.
+
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Formatting
+        run: cargo fmt --check
+
+      - name: Linting
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --all-features
+
+      - name: Minimal core build (no_std)
+        run: cargo check -p iqrcode-core --no-default-features
+
+      - name: Library without CLI
+        run: cargo check -p iqrcode --no-default-features
+
+      - name: WebAssembly targets
+        run: |
+          cargo check -p iqrcode-learn-wasm --target wasm32-unknown-unknown
+          cargo check -p iqrcode-wasm --target wasm32-unknown-unknown

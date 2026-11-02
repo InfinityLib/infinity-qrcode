@@ -1,11 +1,20 @@
 [package]
 name = "iqrcode-learn"
-version = "0.1.0"
-edition = "2024"
+description = "Language-neutral terminal animation for QR Code construction."
+keywords = ["qrcode", "qr", "education", "terminal", "animation"]
+categories = ["command-line-utilities", "multimedia"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "iqrcode-learn"
 path = "src/bin/iqrcode-learn.rs"
 
 [dependencies]
-iqrcode-core = { path = "../iqrcode-core", features = ["std", "trace"] }
+iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std", "trace"] }
+
+[lints]
+workspace = true

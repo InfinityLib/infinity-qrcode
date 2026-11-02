@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Commit-msg hook: enforce the commit message convention.
+#
+# The rule itself is `global/commits`: `type(scope): subject`, English,
+# imperative, lowercase, no trailing period, 72 characters max, and no
+# attribution trailer. This hook refuses what breaks it, and nothing else.
+set -euo pipefail
+
+message_file="${1:?the commit message file is missing}"
+git_dir="$(git rev-parse --git-dir)"
+
+fail() {
+    printf '\n  %s\n\n  Rule: global/commits.\n\n' "$1" >&2
+    exit 1
+}
+
+# The subject is the first line that is neither empty nor a comment.
+subject=""
+while IFS= read -r line; do
+    case "$line" in
+        '' | '#'*) continue ;;
+        *) subject="$line"; break ;;
+    esac
+done < "$message_file"
+
+if [ -z "$subject" ]; then
+    # An empty message: git refuses it on its own, with a better message.
+    exit 0
+fi
+
+# Not hand-written messages. Refusing them would make `git pull` unusable, and
+# `--no-verify` is forbidden.
+if [ -f "$git_dir/MERGE_HEAD" ]; then
+    exit 0
+fi
+case "$subject" in
+    'Merge '* | 'fixup!'* | 'squash!'* | 'Revert '*) exit 0 ;;
+esac
+
+# `type(scope): subject` — lowercase type, optional lowercase scope.
+pattern='^[a-z][a-z0-9-]*(\([a-z0-9._/-]+\))?: .+'
+if ! [[ "$subject" =~ $pattern ]]; then
+    fail "Refused: \"$subject\" is not of the form <type>(<scope>): <subject>."
+fi
+
+if [ "${#subject}" -gt 72 ]; then
+    fail "Refused: the subject is ${#subject} characters, the limit is 72."
+fi
+
+case "$subject" in
+    *.) fail "Refused: the subject ends with a period." ;;
+esac
+
+# No credit to a tool or an assistant, in the subject or the body.
+body="$(grep -v '^#' "$message_file" || true)"
+if printf '%s\n' "$body" | grep -Eqi '^(co-authored-by|generated-by|assisted-by):|🤖'; then
+    fail "Refused: commits are not credited to a tool or an assistant."
+fi

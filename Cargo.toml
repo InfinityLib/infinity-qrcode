@@ -7,3 +7,24 @@ members = [
     "crates/iqrcode-learn-wasm",
     "crates/iqrcode-wasm",
 ]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/InfinityLib/infinity-qrcode"
+
+[workspace.dependencies]
+js-sys = "0.3"
+png = "0.18"
+qrcodegen = "1.8"
+rqrr = { version = "0.11", default-features = false }
+wasm-bindgen = "0.2"
+
+[workspace.lints.clippy]
+correctness = "deny"
+suspicious = "warn"
+style = "warn"
+complexity = "warn"
+perf = "warn"

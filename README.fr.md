@@ -12,7 +12,7 @@ crates/
   iqrcode-core/       cœur QR : encodage, ECC, matrice, trace optionnelle
   iqrcode/            façade std + CLI + PNG
   iqrcode-learn/      animation terminale neutre de la construction
-  iqrcode-learn-wasm/ API WebAssembly pédagogique + UI web i18n FR/EN
+  iqrcode-learn-wasm/ API WebAssembly pédagogique de la trace
   iqrcode-wasm/       wrapper WASM minimal pour générer un QR
 ```
 
@@ -119,8 +119,8 @@ L'animation terminale montre les phases et les valeurs calculées :
 - format information finale,
 - QR Code complet.
 
-Le terminal est volontairement technique et neutre. Les explications, formules
-et traductions sont dans l'UI web (`crates/iqrcode-learn-wasm/web`).
+Le terminal est volontairement technique et neutre. Un frontend web séparé
+pourra fournir les explications, formules et traductions.
 
 Options :
 
@@ -133,31 +133,22 @@ Options :
 
 ## WASM
 
-Version pédagogique complète avec UI web :
+Bindings pédagogiques de la trace :
 
 ```bash
 cd crates/iqrcode-learn-wasm
-wasm-pack build --target web --out-dir web/pkg
-cd web
-python3 -m http.server 8080
+wasm-pack build --target web
 ```
 
-Ouvrir <http://localhost:8080>.
-
-L'UI web gère elle-même les traductions :
-
-```text
-crates/iqrcode-learn-wasm/web/i18n/fr.js
-crates/iqrcode-learn-wasm/web/i18n/en.js
-```
-
-Un sélecteur de langue est disponible dans la page. Le WASM expose uniquement
-les données (phase, matrice, highlight, bit, masque, pénalité), pas les textes.
+Le paquet est généré dans `crates/iqrcode-learn-wasm/pkg`. La crate expose
+uniquement les données ; un frontend web séparé possédera l’UI et les
+traductions.
 
 Wrapper WASM minimal :
 
 ```bash
-wasm-pack build crates/iqrcode-wasm --target web
+cd crates/iqrcode-wasm
+wasm-pack build --target web
 ```
 
 ## Tests
@@ -174,6 +165,28 @@ Les tests comparent les matrices à `qrcodegen` pour les versions 1 à 40, les
 8 masques et les 4 niveaux de correction, puis décodent les QR générés avec
 `rqrr`.
 
+## CI
+
+La suite locale reste la référence :
+
+```bash
+bash scripts/ci.sh
+```
+
+Le script exécute le formatage, Clippy, toute la suite de tests, le build
+`no_std`, les vérifications WASM et `ibrain sync --check`. GitHub Actions
+(`.github/workflows/ci.yml`) rejoue les mêmes vérifications sur chaque push et
+pull request vers `develop` et `main`.
+
+Installer les hooks Git versionnés une fois par clone :
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+Le hook `pre-commit` formate et lint les fichiers Rust indexés ; le hook
+`commit-msg` impose les Conventional Commits.
+
 ## Serde
 
 Serde n'est pas utilisé pour l'instant. Il ne sera ajouté que si on veut
@@ -183,6 +196,13 @@ actuel expose directement les données via `wasm-bindgen`.
 ## Prochaines étapes
 
 - Conversion UTF-8 vers Shift-JIS pour le mode Kanji.
-- Peaufinage de l'UI web et export HTML/GIF.
+- Frontend web séparé consommant `iqrcode-learn-wasm` et `iqrcode-wasm`.
 - Validation `no_std` sur une cible embarquée.
 - Optimisations et benchmarks.
+
+## Licence
+
+Distribué sous licence Apache 2.0 ou MIT, au choix.
+
+- [LICENSE-APACHE](LICENSE-APACHE)
+- [LICENSE-MIT](LICENSE-MIT)

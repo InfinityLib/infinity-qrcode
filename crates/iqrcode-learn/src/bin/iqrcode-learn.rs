@@ -182,8 +182,9 @@ Options:
   --no-mask-candidates                 Hide the eight mask candidates
   -h, --help                           Show this help
 
-Note: explanations and formulas live in the web UI
-(`crates/iqrcode-learn-wasm/web`). The terminal shows phases and values.
+Note: the terminal is language-neutral and shows phases and values. A separate
+web frontend can provide explanations and translations from the
+`iqrcode-learn-wasm` trace.
 
 Examples:
   iqrcode-learn "HELLO WORLD" --animate
