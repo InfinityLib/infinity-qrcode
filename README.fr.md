@@ -167,14 +167,16 @@ Les tests comparent les matrices à `qrcodegen` pour les versions 1 à 40, les
 
 ## CI
 
-La CI tourne en local uniquement ; il n'y a pas de CI hébergée sur Codeberg.
+La suite locale reste la référence :
 
 ```bash
 bash scripts/ci.sh
 ```
 
 Le script exécute le formatage, Clippy, toute la suite de tests, le build
-`no_std`, les vérifications WASM et `ibrain sync --check`.
+`no_std`, les vérifications WASM et `ibrain sync --check`. GitHub Actions
+(`.github/workflows/ci.yml`) rejoue les mêmes vérifications sur chaque push et
+pull request vers `develop` et `main`.
 
 Installer les hooks Git versionnés une fois par clone :
 

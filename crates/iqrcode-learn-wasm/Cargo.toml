@@ -1,6 +1,8 @@
 [package]
 name = "iqrcode-learn-wasm"
 description = "WebAssembly bindings for the QR Code educational trace."
+keywords = ["qrcode", "qr", "wasm", "webassembly", "education"]
+categories = ["wasm", "multimedia"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +13,7 @@ repository.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-iqrcode-learn = { path = "../iqrcode-learn" }
+iqrcode-learn = { version = "0.1", path = "../iqrcode-learn" }
 js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }
 

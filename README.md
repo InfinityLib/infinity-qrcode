@@ -165,14 +165,16 @@ and all 4 correction levels, then decode generated QR Codes with `rqrr`.
 
 ## CI
 
-CI runs locally only; there is no hosted CI on Codeberg.
+The local suite is the source of truth:
 
 ```bash
 bash scripts/ci.sh
 ```
 
 The script runs formatting, Clippy, the full test suite, the `no_std` build, the
-WASM checks and `ibrain sync --check`.
+WASM checks and `ibrain sync --check`. GitHub Actions
+(`.github/workflows/ci.yml`) runs the same checks on every push and pull
+request to `develop` and `main`.
 
 Install the versioned Git hooks once per clone:
 

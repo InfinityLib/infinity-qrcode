@@ -1,6 +1,8 @@
 [package]
 name = "iqrcode-wasm"
 description = "Minimal WebAssembly wrapper for QR Code generation."
+keywords = ["qrcode", "qr", "wasm", "webassembly"]
+categories = ["wasm", "encoding"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +13,7 @@ repository.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-iqrcode-core = { path = "../iqrcode-core", features = ["std"] }
+iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std"] }
 js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }
 

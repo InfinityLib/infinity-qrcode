@@ -1,5 +1,6 @@
 /target
 pkg/
+.idea/
 .ai/
 .agents/skills/
 .ibrain/

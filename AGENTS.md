@@ -60,7 +60,9 @@ versions, modes and malformed input.
 
 ## CI
 
-CI runs locally only. No hosted CI is configured on Codeberg.
+The local suite is the source of truth; GitHub Actions
+(`.github/workflows/ci.yml`) mirrors it on push and pull request to `develop`
+and `main`. Keep both in sync.
 
 - Full local suite: `bash scripts/ci.sh`
 - Install the versioned Git hooks once per clone: `bash scripts/install-hooks.sh`
