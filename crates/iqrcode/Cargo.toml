@@ -1,6 +1,8 @@
 [package]
 name = "iqrcode"
 description = "QR Code generator with CLI and optional PNG output."
+keywords = ["qrcode", "qr", "cli", "generator", "png"]
+categories = ["command-line-utilities", "encoding", "multimedia::images"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,7 +21,7 @@ path = "src/main.rs"
 required-features = ["cli"]
 
 [dependencies]
-iqrcode-core = { path = "../iqrcode-core", features = ["std"] }
+iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std"] }
 
 [dev-dependencies]
 rqrr = { workspace = true }

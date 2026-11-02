@@ -1,6 +1,8 @@
 [package]
 name = "iqrcode-core"
 description = "Core QR Code encoder: encoding, Reed-Solomon, matrix and trace."
+keywords = ["qrcode", "qr", "no-std", "encoder", "barcode"]
+categories = ["encoding", "no-std::no-alloc", "multimedia::images"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
