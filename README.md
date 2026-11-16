@@ -151,11 +151,12 @@ Educational trace bindings:
 
 ```bash
 cd crates/iqrcode-learn-wasm
-wasm-pack build --target web
+wasm-pack build --target web --scope infinitylib
 ```
 
-The generated package is in `crates/iqrcode-learn-wasm/pkg`. The crate exposes
-data only; a separate web frontend will own the UI and translations.
+The generated package is in `crates/iqrcode-learn-wasm/pkg` and is published on
+npm as `@infinitylib/iqrcode-learn-wasm`. The crate exposes data only; a
+separate web frontend will own the UI and translations.
 
 Minimal WASM wrapper:
 
