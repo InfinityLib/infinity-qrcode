@@ -164,6 +164,10 @@ cd crates/iqrcode-wasm
 wasm-pack build --target web
 ```
 
+The generated package is in `crates/iqrcode-wasm/pkg`. The wrapper exposes the
+constructor, `matrix()`, `size()`, `version()` and `mask()`; it does not render
+SVG or PNG — colours and export belong to the consuming frontend.
+
 ## Tests
 
 ```bash
