@@ -161,12 +161,13 @@ Minimal WASM wrapper:
 
 ```bash
 cd crates/iqrcode-wasm
-wasm-pack build --target web
+wasm-pack build --target web --scope infinitylib
 ```
 
-The generated package is in `crates/iqrcode-wasm/pkg`. The wrapper exposes the
-constructor, `matrix()`, `size()`, `version()` and `mask()`; it does not render
-SVG or PNG — colours and export belong to the consuming frontend.
+The generated package is in `crates/iqrcode-wasm/pkg` and is published on npm
+as `@infinitylib/iqrcode-wasm`. The wrapper exposes the constructor, `matrix()`,
+`size()`, `version()` and `mask()`; it does not render SVG or PNG — colours and
+export belong to the consuming frontend.
 
 ## Tests
 
