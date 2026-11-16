@@ -76,10 +76,10 @@ le cœur directement :
 
 ```toml
 # ASCII, PBM et SVG
-iqrcode-core = { version = "0.1", features = ["format"] }
+iqrcode-core = { version = "0.2", features = ["format"] }
 
 # PNG en plus
-iqrcode-core = { version = "0.1", features = ["format", "png"] }
+iqrcode-core = { version = "0.2", features = ["format", "png"] }
 ```
 
 ```rust

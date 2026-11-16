@@ -124,7 +124,7 @@ dependencies = [
 
 [[package]]
 name = "iqrcode"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "iqrcode-core",
  "rqrr",
@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "iqrcode-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "png",
  "qrcodegen",
@@ -140,14 +140,14 @@ dependencies = [
 
 [[package]]
 name = "iqrcode-learn"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "iqrcode-core",
 ]
 
 [[package]]
 name = "iqrcode-learn-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "iqrcode-learn",
  "js-sys",
@@ -156,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "iqrcode-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "iqrcode-core",
  "js-sys",

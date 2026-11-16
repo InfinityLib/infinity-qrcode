@@ -74,10 +74,10 @@ The ASCII, PBM and SVG formats (`to_ascii`, `to_ascii_with_quiet_zone`, `to_pbm`
 
 ```toml
 # ASCII, PBM and SVG
-iqrcode-core = { version = "0.1", features = ["format"] }
+iqrcode-core = { version = "0.2", features = ["format"] }
 
 # PNG as well
-iqrcode-core = { version = "0.1", features = ["format", "png"] }
+iqrcode-core = { version = "0.2", features = ["format", "png"] }
 ```
 
 ```rust

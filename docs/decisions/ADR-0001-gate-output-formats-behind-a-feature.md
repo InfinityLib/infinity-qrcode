@@ -1,6 +1,6 @@
 # ADR-0001 : Gate output formats behind a `format` feature
 
-- **Status** : `proposed`
+- **Status** : `accepted`
 - **Date** : 2026-11-16
 
 ## Context
