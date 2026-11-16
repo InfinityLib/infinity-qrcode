@@ -1,6 +1,5 @@
 use core::fmt;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bits::{self, Segment};
@@ -418,18 +417,6 @@ impl QrCode {
     #[must_use]
     pub fn mask(&self) -> u8 {
         self.mask
-    }
-
-    /// Renders the QR Code as text, with a four-module quiet zone.
-    #[must_use]
-    pub fn to_ascii(&self) -> String {
-        self.to_ascii_with_quiet_zone(4)
-    }
-}
-
-impl fmt::Display for QrCode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.to_ascii())
     }
 }
 
