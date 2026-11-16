@@ -261,19 +261,19 @@ impl Matrix {
         let mut score = 0u32;
 
         // Rule 1: runs of five or more same-coloured modules.
-        for y in 0..size {
+        for row in &self.modules {
             let mut run_length = 1;
-            let mut run_color = self.modules[y][0];
+            let mut run_color = row[0];
 
-            for x in 1..size {
-                if self.modules[y][x] == run_color {
+            for &module in &row[1..] {
+                if module == run_color {
                     run_length += 1;
                 } else {
                     if run_length >= 5 {
                         score += 3 + (run_length - 5) as u32;
                     }
                     run_length = 1;
-                    run_color = self.modules[y][x];
+                    run_color = module;
                 }
             }
 
@@ -286,15 +286,16 @@ impl Matrix {
             let mut run_length = 1;
             let mut run_color = self.modules[0][x];
 
-            for y in 1..size {
-                if self.modules[y][x] == run_color {
+            for row in self.modules.iter().skip(1) {
+                let module = row[x];
+                if module == run_color {
                     run_length += 1;
                 } else {
                     if run_length >= 5 {
                         score += 3 + (run_length - 5) as u32;
                     }
                     run_length = 1;
-                    run_color = self.modules[y][x];
+                    run_color = module;
                 }
             }
 
@@ -321,16 +322,16 @@ impl Matrix {
         const PATTERN_A: u32 = 0b10111010000;
         const PATTERN_B: u32 = 0b00001011101;
 
-        for y in 0..size {
+        for row in &self.modules {
             let mut window = 0u32;
+            let border = core::iter::repeat_n(0u32, 4);
+            let modules = row.iter().copied().map(u32::from);
 
-            for x in 0..size + 8 {
-                let bit = if (4..size + 4).contains(&x) {
-                    u32::from(self.modules[y][x - 4])
-                } else {
-                    0
-                };
-
+            for (x, bit) in border
+                .chain(modules)
+                .chain(core::iter::repeat_n(0u32, 4))
+                .enumerate()
+            {
                 window = ((window << 1) | bit) & 0x7FF;
                 if x >= 10 && (window == PATTERN_A || window == PATTERN_B) {
                     score += 40;
@@ -340,14 +341,14 @@ impl Matrix {
 
         for x in 0..size {
             let mut window = 0u32;
+            let border = core::iter::repeat_n(0u32, 4);
+            let modules = self.modules.iter().map(|row| u32::from(row[x]));
 
-            for y in 0..size + 8 {
-                let bit = if (4..size + 4).contains(&y) {
-                    u32::from(self.modules[y - 4][x])
-                } else {
-                    0
-                };
-
+            for (y, bit) in border
+                .chain(modules)
+                .chain(core::iter::repeat_n(0u32, 4))
+                .enumerate()
+            {
                 window = ((window << 1) | bit) & 0x7FF;
                 if y >= 10 && (window == PATTERN_A || window == PATTERN_B) {
                     score += 40;
