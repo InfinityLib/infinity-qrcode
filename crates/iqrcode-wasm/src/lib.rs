@@ -55,11 +55,6 @@ impl QrCodeWasm {
 
         Uint8Array::from(&flat[..])
     }
-
-    /// Returns the QR Code as an SVG string.
-    pub fn svg(&self, module_size: usize, quiet_zone: usize) -> String {
-        self.inner.to_svg(module_size, quiet_zone)
-    }
 }
 
 fn parse_level(value: &str) -> Result<CorrectionLevel, JsValue> {

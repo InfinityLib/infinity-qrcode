@@ -14,7 +14,7 @@ name = "iqrcode-learn"
 path = "src/bin/iqrcode-learn.rs"
 
 [dependencies]
-iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std", "trace"] }
+iqrcode-core = { version = "0.2", path = "../iqrcode-core", features = ["std", "trace"] }
 
 [lints]
 workspace = true

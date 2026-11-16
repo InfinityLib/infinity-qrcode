@@ -30,9 +30,12 @@ Le cœur expose :
 - la segmentation multi-modes,
 - Reed-Solomon et l'entrelacement,
 - les versions 1 à 40,
-- les sorties ASCII, PBM et SVG.
+- la matrice sous forme de `Vec<Vec<u8>>`.
 
-Sans feature, il n'y a ni CLI, ni PNG, ni animation.
+La feature `format` ajoute les sorties ASCII, PBM et SVG ; `png` ajoute le PNG
+par-dessus.
+
+Sans feature, il n'y a ni CLI, ni format de sortie, ni PNG, ni animation.
 
 ## Version complète
 
@@ -42,7 +45,7 @@ cargo build -p iqrcode --features full
 
 Features :
 
-- `iqrcode-core` : `std`, `trace`, `png` (PNG implique `std`).
+- `iqrcode-core` : `std`, `trace`, `format`, `png` (PNG implique `format` et `std`).
 - `iqrcode` : `cli` (activée par défaut), `png`, `full`.
 
 Le build par défaut de `iqrcode` active `cli`.
@@ -65,6 +68,19 @@ for row in &matrix {
 ```
 
 Autres sorties :
+
+Les formats ASCII, PBM et SVG (`to_ascii`, `to_ascii_with_quiet_zone`,
+`to_pbm`, `to_svg` et `Display`) nécessitent la feature `format` ; `to_png`
+nécessite en plus `png`. La façade `iqrcode` active déjà les deux. Pour utiliser
+le cœur directement :
+
+```toml
+# ASCII, PBM et SVG
+iqrcode-core = { version = "0.2", features = ["format"] }
+
+# PNG en plus
+iqrcode-core = { version = "0.2", features = ["format", "png"] }
+```
 
 ```rust
 let pbm = qr.to_pbm(4);
@@ -150,6 +166,10 @@ Wrapper WASM minimal :
 cd crates/iqrcode-wasm
 wasm-pack build --target web
 ```
+
+Le paquet est généré dans `crates/iqrcode-wasm/pkg`. Le wrapper expose le
+constructeur, `matrix()`, `size()`, `version()` et `mask()` ; il ne rend ni SVG
+ni PNG — les couleurs et l'export appartiennent au frontend consommateur.
 
 ## Tests
 

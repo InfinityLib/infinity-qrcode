@@ -13,7 +13,8 @@ repository.workspace = true
 default = []
 std = []
 trace = []
-png = ["std", "dep:png"]
+format = []
+png = ["format", "std", "dep:png"]
 
 [dependencies]
 png = { workspace = true, optional = true }

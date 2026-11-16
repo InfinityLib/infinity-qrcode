@@ -33,7 +33,8 @@ rewriting it. Keep the index in `docs/decisions/README.md` up to date.
 - Keep `iqrcode-core` independent from the CLI, terminal rendering and web frontend.
 - Put presentation text and translations out of the core and the learn crate;
   a separate web frontend will own them.
-- Keep optional features explicit: `std`, `trace`, `png`, `cli`, `full`.
+- Keep optional features explicit: `std`, `trace`, `format`, `png`, `cli`,
+  `full`.
 
 ## Code conventions
 
