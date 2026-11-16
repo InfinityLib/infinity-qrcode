@@ -21,7 +21,7 @@ path = "src/main.rs"
 required-features = ["cli"]
 
 [dependencies]
-iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std"] }
+iqrcode-core = { version = "0.1", path = "../iqrcode-core", features = ["std", "format"] }
 
 [dev-dependencies]
 rqrr = { workspace = true }

@@ -30,9 +30,11 @@ The core provides:
 - mixed-mode segmentation,
 - Reed-Solomon and block interleaving,
 - versions 1 to 40,
-- ASCII, PBM and SVG output.
+- the matrix as a `Vec<Vec<u8>>`.
 
-Without features there is no CLI, no PNG and no animation.
+The `format` feature adds ASCII, PBM and SVG output; `png` adds PNG on top of it.
+
+Without features there is no CLI, no output format, no PNG and no animation.
 
 ## Full build
 
@@ -42,7 +44,7 @@ cargo build -p iqrcode --features full
 
 Features:
 
-- `iqrcode-core`: `std`, `trace`, `png` (PNG implies `std`).
+- `iqrcode-core`: `std`, `trace`, `format`, `png` (PNG implies `format` and `std`).
 - `iqrcode`: `cli` (enabled by default), `png`, `full`.
 
 The default `iqrcode` build enables `cli`.
@@ -65,6 +67,18 @@ for row in &matrix {
 ```
 
 Other outputs:
+
+The ASCII, PBM and SVG formats (`to_ascii`, `to_ascii_with_quiet_zone`, `to_pbm`,
+`to_svg` and `Display`) require the `format` feature; `to_png` also requires
+`png`. The `iqrcode` facade already enables both. To use the core directly:
+
+```toml
+# ASCII, PBM and SVG
+iqrcode-core = { version = "0.1", features = ["format"] }
+
+# PNG as well
+iqrcode-core = { version = "0.1", features = ["format", "png"] }
+```
 
 ```rust
 let pbm = qr.to_pbm(4);
@@ -149,6 +163,10 @@ Minimal WASM wrapper:
 cd crates/iqrcode-wasm
 wasm-pack build --target web
 ```
+
+The generated package is in `crates/iqrcode-wasm/pkg`. The wrapper exposes the
+constructor, `matrix()`, `size()`, `version()` and `mask()`; it does not render
+SVG or PNG — colours and export belong to the consuming frontend.
 
 ## Tests
 

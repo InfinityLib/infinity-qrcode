@@ -10,8 +10,8 @@
 //! [`QrCode::encode_utf8`], and Kanji mode accepts raw Shift-JIS bytes through
 //! [`QrCode::encode_kanji_shift_jis`].
 //!
-//! Outputs are available as a `Vec<Vec<u8>>` matrix, ASCII, PBM and SVG, plus
-//! PNG when the `png` feature is enabled.
+//! Outputs are always available as a `Vec<Vec<u8>>` matrix. ASCII, PBM and SVG
+//! output require the `format` feature; PNG additionally requires `png`.
 //!
 //! The `trace` feature enables the [`trace`] module, which records every
 //! construction step for educational tools and animations.
@@ -39,6 +39,7 @@ mod bits;
 mod gf256;
 mod matrix;
 mod optimize;
+#[cfg(feature = "format")]
 mod output;
 mod reed_solomon;
 mod tables;

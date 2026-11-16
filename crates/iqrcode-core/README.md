@@ -7,7 +7,8 @@ construction and optional construction trace.
 - Numeric, Alphanumeric, Byte and Kanji modes, with automatic mixed-mode
   segmentation.
 - `no_std` compatible by default (requires `alloc`).
-- Output as a matrix, ASCII, PBM or SVG; PNG behind the `png` feature.
+- Output as a matrix; ASCII, PBM and SVG behind the `format` feature, PNG behind
+  the `png` feature.
 - Optional `trace` feature recording every construction step.
 
 ```rust
